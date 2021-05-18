@@ -52,15 +52,6 @@ class Vector3 {
         return new Vector3(x, y, z);
     }
 
-    /**
-     * Returns the quaternion representation of the caller
-     * @return the quaternion representation of the caller
-     */
-    public Quaternion getQuaternion() {
-        return new Quaternion(0.0, x, y, z);
-    }
-
-
     @Override
     public String toString() {
         return String.format("<%f, %f, %f>", x, y, z);

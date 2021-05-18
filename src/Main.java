@@ -12,9 +12,10 @@ public class Main {
 
 		long startTime = System.currentTimeMillis();
 
-		Display display = new Display(1366, 768);
+		// 1366, 768
+		Display display = new Display(480, 360);
 		
-		Vector3 camera = new Vector3();
+		Vector3 camera  = new Vector3(0.0, -7.0, 0.0);
 		Vector3 cameraI = new Vector3(1.0, 0.0, 0.0);
 		Vector3 cameraJ = new Vector3(0.0, 1.0, 0.0);
 		Vector3 cameraK = new Vector3(0.0, 0.0, 1.0);
@@ -28,11 +29,7 @@ public class Main {
 		double horInitRad = -horFov / 2f;
 		double verInitRad = verFov / 2f;
 
-		Triangle testTri = new Triangle(
-			new Vector3(-1, 5, 0), 
-			new Vector3(1, 5, 0), 
-			new Vector3(0, 5, 1)
-		);
+		Mesh teapot = new Mesh("teapot.obj");
 
 		long startRenderTime = System.currentTimeMillis();
 //		for (int i = 0; i < 1000; i++)
@@ -50,15 +47,16 @@ public class Main {
 
 			    Vector3 ray = Vector3.rotate(rayV, cameraK, horInitRad + horRadPerPix * x);
 				
-				if (Triangle.intersects(camera, ray, testTri) != null) 
-					r = g = b = 0xFF;
-				
+				for (Triangle tri : teapot.triangles) {
+					if (Triangle.intersects(camera, ray, tri) != null) 
+						r = g = b = 0xFF;
+				}
 				display.set(x, y, a, r, g, b);
-				
+				display.repaint();
 			}
 		}
 
-		display.repaint();
+		
 		
 
 		System.out.printf(
