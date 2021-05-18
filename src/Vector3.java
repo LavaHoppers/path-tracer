@@ -97,7 +97,7 @@ class Vector3 {
     }
 
     /**
-     * Computes the inner product of two vectors
+     * Computes the inner product of two vectorscc
      * @param a the first vector
      * @param b the second vector
      * @return the dot product of the two vectors
@@ -127,7 +127,7 @@ class Vector3 {
      * @param theta the angle to rotate the vector by
      * @return the rotated vector
      */
-    static Vector3 rotate(Vector3 v, Vector3 k, double theta) {
+    public static Vector3 rotate(Vector3 v, Vector3 k, double theta) {
         double c = Math.cos(theta);
         double s = Math.sin(theta);
         Vector3 cross = Vector3.cross(k, v);
@@ -140,36 +140,34 @@ class Vector3 {
     }
 
     /**
-     * Rotate a vector b around a vector axis a by theta degrees according to the
-     * right hand rule.
-     * <a href = 
-     * https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation#Using_quaternion_as_rotations>
-     * Quaternions and spatial rotation</a>
-     * @param a     the vector to be rotated
-     * @param axis  the axis of rotation
-     * @param theta the angle of rotation
-     * @return the rotated vector
-     */
-    public static Vector3 rotateQ(Vector3 a, Vector3 axis, double theta) {
-        double s = Math.sin(theta / 2.0);
-        Quaternion q = new Quaternion(
-            Math.cos(theta / 2.0), axis.x * s, axis.y * s, axis.z * s
-        );
-        Quaternion p = new Quaternion(0.0, a.x, a.y, a.z);
-        Quaternion product = Quaternion.multiply(Quaternion.multiply(q, p), Quaternion.inv(q));
-        return product.getVector3();
-    } 
-
-    /**
+     * Fast quaternion based arbitrary axis rotation.
      * <a href = https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/>
      * link to article with the formula</a>
-     * @param a the vector to be rotated
-     * @param axis the axis to rotate around
+     * @param a     the vector to be rotated
+     * @param axis  the axis to rotate around
      * @param theta the angle to rotate around the axis
-     * @return
+     * @return the rotated vector
      */
-    public static Vector3 rotateFQ(Vector3 a, Vector3 axis, double theta) {
-        
-    }
+    /* public static Vector3 rotateFQ(Vector3 v, Vector3 axis, double theta) {
+        double a, s, w, qx, qy, qz, tx, ty, tz; 
+        a = theta / 2.0;
+        s = Math.sin(a);
+        w = Math.cos(a);
+
+        qx = axis.x * s;
+        qy = axis.y * s;
+        qz = axis.z * s;
+
+        tx = 2 * (qy * v.z - qz * v.y);
+        ty = 2 * (qz * v.x - qx * v.z);
+        tz = 2 * (qx * v.y - qy * v.x);
+
+        return new Vector3(
+            v.x + w * tx + (qy * tz - qz * ty),
+            v.y + w * ty + (qz * tx - qx * tz),
+            v.z + w * tz + (qx * ty - qy * tx)
+        );
+    } */
+
 
 }

@@ -35,10 +35,10 @@ public class Main {
 		);
 
 		long startRenderTime = System.currentTimeMillis();
-
+//		for (int i = 0; i < 1000; i++)
 		for (int y = 0; y < display.height; y++) {
 
-			Vector3 rayV = Vector3.rotateQ(cameraJ, cameraI, verInitRad - verRadPerPix * y);
+			Vector3 rayV = Vector3.rotate(cameraJ, cameraI, verInitRad - verRadPerPix * y);
 
 			for (int x = 0; x < display.width; x++) {
 
@@ -48,19 +48,17 @@ public class Main {
 				int g = 0;
 				int b = 0;
 
-			    Vector3 ray = Vector3.rotateQ(rayV, cameraK, horInitRad + horRadPerPix * x);
+			    Vector3 ray = Vector3.rotate(rayV, cameraK, horInitRad + horRadPerPix * x);
 				
 				if (Triangle.intersects(camera, ray, testTri) != null) 
-					r = 0xFF;
+					r = g = b = 0xFF;
 				
 				display.set(x, y, a, r, g, b);
 				
-				// Adds roughly 120 milliseconds to the render time inside the
-				// rendering loop
-				display.repaint();
 			}
 		}
 
+		display.repaint();
 		
 
 		System.out.printf(

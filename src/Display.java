@@ -91,6 +91,7 @@ class Display {
 	public void set(int x, int y, int a, int r, int g, int b) {
 		/* the argb value is made by shifting all the bits to the 
 		correct spots and concatinating them with bitwise-or.*/
+
 		data.setElem(x + y * width, a << 24 | r << 16 | g << 8 | b);
 	}
 
