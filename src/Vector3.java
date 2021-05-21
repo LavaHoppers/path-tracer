@@ -4,9 +4,9 @@
  */
 class Vector3 {
 
-    private final double x;
-    private final double y;
-    private final double z;
+    public final double x;
+    public final double y;
+    public final double z;
 
     /**
      * Create a new vector on the origin
@@ -25,6 +25,18 @@ class Vector3 {
         this.x = x;
         this.y = y;
         this.z = z;
+    }
+
+    /**
+     * Create a unit vector from two angles 
+     * alpha being 
+     * @param alpha the horizontal angle
+     * @param beta the vertical angle
+     */
+    Vector3(double alpha, double beta) {
+        this.x = Math.sin(alpha) * Math.cos(beta);
+        this.y = Math.cos(alpha) * Math.cos(beta);
+        this.z = Math.sin(beta);
     }
 
     /**
@@ -66,6 +78,21 @@ class Vector3 {
     static Vector3 add(Vector3 a, Vector3 b) {
         return new Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
     }
+
+    /**
+     * Adds n vectors
+     * @param vecs the n vectors to be added
+     * @return the sum of all the vectors
+     */
+    static Vector3 add(Vector3... vecs) {
+        double x = 0.0, y = 0.0, z = 0.0;
+        for (Vector3 vec : vecs) {
+            x += vec.x;
+            y += vec.y;
+            z += vec.z;
+        }
+        return new Vector3(x, y, z);
+    }
     
     /**
      * Subtracts two vectors element wise and returns the difference
@@ -85,6 +112,22 @@ class Vector3 {
      */
     static Vector3 scale(Vector3 a, double c) {
         return new Vector3(a.x * c, a.y * c, a.z * c);
+    }
+
+    /**
+     * Scales vector B by constant C and adds the result to A
+     * 
+     * @param a the vector to be added to 
+     * @param b the vector to be scaled
+     * @param c the constant
+     * @return
+     */
+    static Vector3 scaleAdd(Vector3 a, Vector3 b, double c) {
+        return new Vector3(
+            a.x + b.x * c,
+            a.y + b.y * c,
+            a.z + b.z * c
+        );
     }
 
     /**
@@ -118,7 +161,7 @@ class Vector3 {
      * @param theta the angle to rotate the vector by
      * @return the rotated vector
      */
-    public static Vector3 rotate(Vector3 v, Vector3 k, double theta) {
+    /* public static Vector3 rotate(Vector3 v, Vector3 k, double theta) {
         double c = Math.cos(theta);
         double s = Math.sin(theta);
         Vector3 cross = Vector3.cross(k, v);
@@ -128,7 +171,7 @@ class Vector3 {
             v.y * c + cross.y * s + k.y * w,
             v.z * c + cross.z * s + k.z * w
         );
-    }
+    } */
 
     /**
      * Fast quaternion based arbitrary axis rotation.
@@ -139,7 +182,7 @@ class Vector3 {
      * @param theta the angle to rotate around the axis
      * @return the rotated vector
      */
-    /* public static Vector3 rotateFQ(Vector3 v, Vector3 axis, double theta) {
+    public static Vector3 rotate(Vector3 v, Vector3 axis, double theta) {
         double a, s, w, qx, qy, qz, tx, ty, tz; 
         a = theta / 2.0;
         s = Math.sin(a);
@@ -153,12 +196,14 @@ class Vector3 {
         ty = 2 * (qz * v.x - qx * v.z);
         tz = 2 * (qx * v.y - qy * v.x);
 
+ 
+
         return new Vector3(
             v.x + w * tx + (qy * tz - qz * ty),
             v.y + w * ty + (qz * tx - qx * tz),
             v.z + w * tz + (qx * ty - qy * tx)
         );
-    } */
+    }
 
 
 }

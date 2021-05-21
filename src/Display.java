@@ -1,12 +1,9 @@
-// Advice used for drawing pixels fast
-// stackoverflow.com/questions/13638793
-
 import java.awt.*;
 import java.awt.image.*;
 import javax.swing.*;
 
 /**
- * Class for interactin with the "path finding"
+ * Class for displaying an image to the screen
  */
 class Display {
 
@@ -15,10 +12,7 @@ class Display {
 	private DataBuffer data;
 	private JPanel panel;
 
-	public final int width;
-	public final int height;
-
-	public boolean running = true;
+	private int width;
 
 	/**
 	 * Create a new display with size width by height
@@ -27,8 +21,7 @@ class Display {
 	 */
     Display(int width, int height) {
 
-        this.width = width;
-        this.height = height;
+		this.width = width;
 
 		frame = new JFrame("path tracer");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -48,7 +41,9 @@ class Display {
 								
 		frame.add(panel);
 		frame.validate();
-		fill(0xFFFF0000);
+		for (int y = 0; y < height; y++)
+			for (int x = 0; x < width; x++)
+				data.setElem(x + y * width, 0x00000000);
 		panel.repaint();
 
     }
@@ -60,26 +55,15 @@ class Display {
 		panel.repaint();
 	}
 
-	/**
-	 * Fills the screen with a color.
-	 */
-	public void fill(int argbHex) {
-		for (int y = 0; y < height; y++)
-			for (int x = 0; x < width; x++)
-				data.setElem(x + y * width, argbHex);
-	}
-
-    /**
-	 * Fills the screen with a color.
-	 */
-	public void fill(int a, int r, int g, int b) {
-		fill(a << 24 | r << 16 | g << 8 | b);
-	}
-
     /**
 	 * Set a pixel on the screen to a color. There is no error checking done on this
 	 * function for the sake of speed. All ARGB colors should be in the range of 0:255,
 	 * and the x and y should be valid pixel locations on the screen.
+	 * 
+	 * the argb value is made by shifting all the bits to the correct spots and 
+	 * concatinating them with bitwise-or.
+	 * 
+	 * stackoverflow.com/questions/13638793
 	 * 
 	 * @param x the x location of the pixel
 	 * @param y the y location of the pixel
@@ -89,9 +73,6 @@ class Display {
 	 * @param b the blue value of the pixel
 	 */
 	public void set(int x, int y, int a, int r, int g, int b) {
-		/* the argb value is made by shifting all the bits to the 
-		correct spots and concatinating them with bitwise-or.*/
-
 		data.setElem(x + y * width, a << 24 | r << 16 | g << 8 | b);
 	}
 
