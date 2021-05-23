@@ -1,6 +1,10 @@
 /**
- * Class for computing vector math. Uses double floating point values and is
- * mutable. Can use both static or method calls.
+ * Class for computing 3D vector math
+ * <p>
+ * Uses double floating point values and is immutable. All method calls will
+ * return a brand new vector3.
+ * @author Joshua Hopwood
+ * @see <a href=https://github.com/lavahoppers>GitHub</a>
  */
 class Vector3 {
 
@@ -28,19 +32,7 @@ class Vector3 {
     }
 
     /**
-     * Create a unit vector from two angles 
-     * alpha being 
-     * @param alpha the horizontal angle
-     * @param beta the vertical angle
-     */
-    Vector3(double alpha, double beta) {
-        this.x = Math.sin(alpha) * Math.cos(beta);
-        this.y = Math.cos(alpha) * Math.cos(beta);
-        this.z = Math.sin(beta);
-    }
-
-    /**
-     * The length of the caller
+     * Get the length or magnitude of the caller
      * @return the length of the caller
      */
     public double mag() {
@@ -48,20 +40,11 @@ class Vector3 {
     }
 
     /**
-     * Returns a normalized version of the vector
-     * @param a the vector
-     * @return a, but normalized
+     * Returns a normalized version of the caller
+     * @return the caller with a magnitude of one
      */
     public Vector3 norm() {
         return scale(this, 1f / this.mag());
-    }
-
-    /**
-     * Return a deep copy of the caller
-     * @return a deep copy of the caller
-     */
-    public Vector3 copy() {
-        return new Vector3(x, y, z);
     }
 
     @Override
@@ -115,7 +98,7 @@ class Vector3 {
     }
 
     /**
-     * Scales vector B by constant C and adds the result to A
+     * Scales vector b by constant c and adds the result to vector a
      * 
      * @param a the vector to be added to 
      * @param b the vector to be scaled
@@ -131,7 +114,7 @@ class Vector3 {
     }
 
     /**
-     * Computes the inner product of two vectorscc
+     * Computes the inner product of two vectors
      * @param a the first vector
      * @param b the second vector
      * @return the dot product of the two vectors
@@ -152,16 +135,18 @@ class Vector3 {
 
     /**
      * Rotate the vector v around the vector k theta radians according to the right
-     * hand rule. <a href =
-     * https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula>
+     * hand rule. 
+     * @see <a href=https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula>
      * Rodrigues' rotation formula</a>
-     * 
+     * @see Vector3#rotate(Vector3, Vector3, double)
      * @param v     the vector to be rotated
      * @param k     the vector to act as the axis of rotation
      * @param theta the angle to rotate the vector by
      * @return the rotated vector
+     * @deprecated aledgedly slowed that quaternion based rotation
      */
-    /* public static Vector3 rotate(Vector3 v, Vector3 k, double theta) {
+    @Deprecated
+    public static Vector3 rotateEuler(Vector3 v, Vector3 k, double theta) {
         double c = Math.cos(theta);
         double s = Math.sin(theta);
         Vector3 cross = Vector3.cross(k, v);
@@ -171,38 +156,80 @@ class Vector3 {
             v.y * c + cross.y * s + k.y * w,
             v.z * c + cross.z * s + k.z * w
         );
-    } */
+    }
 
+    
     /**
-     * Fast quaternion based arbitrary axis rotation.
-     * <a href = https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/>
-     * link to article with the formula</a>
+     * Fast quaternion based arbitrary axis rotation
+     * @see<a href=https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/>
+     * article with the formula</a>
+     * @see Vector3#rotate(Vector3, Vector3, double)
      * @param a     the vector to be rotated
      * @param axis  the axis to rotate around
      * @param theta the angle to rotate around the axis
      * @return the rotated vector
+     * @deprecated use the rotate method until the bugs with this one are fixed
      */
-    public static Vector3 rotate(Vector3 v, Vector3 axis, double theta) {
-        double a, s, w, qx, qy, qz, tx, ty, tz; 
-        a = theta / 2.0;
-        s = Math.sin(a);
-        w = Math.cos(a);
+    @Deprecated
+    public static Vector3 rotateFQ(Vector3 v, Vector3 axis, double theta) {
 
-        qx = axis.x * s;
-        qy = axis.y * s;
-        qz = axis.z * s;
+        double sin, cos, qx, qy, qz, tx, ty, tz; 
+
+        sin = Math.sin(theta / 2.0);
+        cos = Math.cos(theta / 2.0);
+
+        qx = axis.x * sin;
+        qy = axis.y * sin;
+        qz = axis.z * sin;
 
         tx = 2 * (qy * v.z - qz * v.y);
         ty = 2 * (qz * v.x - qx * v.z);
         tz = 2 * (qx * v.y - qy * v.x);
+        
+        return new Vector3(
+            v.x + cos * tx + (qy * tz - qz * ty),
+            v.y + cos * ty + (qz * tx - qx * tz),
+            v.z + cos * tz + (qx * ty - qy * tx)
+        );
+    }
 
- 
+    /**
+     * Rotate a vector around an axis by theta degree according to the right hand rule
+     * <p>
+     * This implementation uses 'quaternions' represented by four doubles.
+     * @see <a href=https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation>
+     * Quaternion vector rotation</a>
+     * @param p     the vector to be rotated
+     * @param axis  the axis of rotation
+     * @param theta the angle of rotation
+     * @return the rotated vector
+     */
+    public static Vector3 rotate(Vector3 p, Vector3 axis, double theta) {
+
+        double sin, cos; 
+
+        sin = Math.sin(theta / 2.0);
+        cos = Math.cos(theta / 2.0);
+
+        double qx = axis.x * sin;
+        double qy = axis.y * sin; // p' = qpq'
+        double qz = axis.z * sin;
+
+        double qxp = qx * -1.0;
+        double qyp = qy * -1.0;
+        double qzp = qz * -1.0;
+
+        double tw = -qx * p.x - qy * p.y - qz * p.z;
+        double tx = cos * p.x + qy * p.z - qz * p.y;
+        double ty = cos * p.y - qx * p.z + qz * p.x;
+        double tz = cos * p.z + qx * p.y - qy * p.x;
 
         return new Vector3(
-            v.x + w * tx + (qy * tz - qz * ty),
-            v.y + w * ty + (qz * tx - qx * tz),
-            v.z + w * tz + (qx * ty - qy * tx)
+            tw * qxp + tx * cos + ty * qzp - tz * qyp,
+            tw * qyp - tx * qzp + ty * cos + tz * qxp,
+            tw * qzp + tx * qyp - ty * qxp + tz * cos 
         );
+       
     }
 
 

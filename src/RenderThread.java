@@ -1,6 +1,5 @@
 import java.lang.Thread;
 import java.util.LinkedList;
-
 /**
  * An instantiable class designed to render a certain portion of pixels on the screen.
  * The RenderThread should be created, passed the pixels to render, and the necessary info
@@ -11,16 +10,15 @@ import java.util.LinkedList;
  * 
  * The renderThread will render the portion of the screen from the starting y value to the
  * ending y value specified in the constructor
+ * @author Joshua Hopwood
+ * @see <a href=https://github.com/lavahoppers>GitHub</a>
  */
 public class RenderThread extends Thread {
 
     private int starty;
     private int endy;
 
-    private Mesh mesh;
-    private Display display;
-
-    private Vector3 camera;
+    private LinkedList<Mesh> scene;
     private Vector3[] rays;
 
     /**
@@ -29,109 +27,113 @@ public class RenderThread extends Thread {
      * 
      * @param starty the starting y value of the threa
      * @param endy the ending y value
-     * @param mesh the mesh to render
-     * @param display the display to output to
-     * @param camera the camera position
+     * @param scene the mesh to render
      * @param rays the array of all the initial veiwing rays from the camera
      */
-    RenderThread(int starty, int endy, Mesh mesh, Display display, Vector3 camera, Vector3[] rays) {
-
-        /* call the super constructor */
-        super();
-
-        /* save the starting and ending values */
+    RenderThread(int starty, int endy, LinkedList<Mesh> scene, Vector3[] rays) {
+        super(); // let this thread name itself
         this.starty = starty;
         this.endy = endy;
-
-        /* save the mesh to render over */
-        this.mesh = mesh;
-
-        /* save the display to output to */
-        this.display = display;
-
-        /* the position of the camera */
-        this.camera = camera;
+        this.scene = scene;
         this.rays = rays;
-
     }
 
+    /**
+     * Rendered a horizontal stripe of the screen
+     * <p>
+     * Instead of calling this method directly, call the start function for this 
+     * rendering thread to run this method on an available cpu core.
+     */
     @Override
     public void run() {
 
-        LinkedList<AABB> queue = new LinkedList<AABB>();
-        
+        LinkedList<AABB>     boxQueue = new LinkedList<AABB>();
 
-        for (int y = this.starty; y < endy; y++) {
-			for (int x = 0; x < Main.WIDTH; x++) {
-
-                Vector3 closest = null;
-                Triangle closestTri = null;
-
-				// ARGB values that will be sent to the display.set method
-				int a = 0xFF; // 	(165,42,42)
-				int r = 0;
-				int g = 0;
-				int b = 0;
-
-			    Vector3 ray = rays[x + y * Main.WIDTH];
-
-                /* for (Triangle tri : mesh.triangles) {
-                    Vector3 pt = tri.intersects(camera, ray);
-                    if (pt != null) 
-                        r = g = b = (int)Math.min(255.0, Vector3.sub(camera, pt).mag() * 40);
-                } */
-
-                queue.add(mesh.bvh.root);
-
-                while (!queue.isEmpty()) {
-
-                    AABB current = queue.pop();
-                    if (current == null)
-                        continue;
-
-                    if (current.intersects(camera, ray)){
-                        queue.add(current.leftChild);
-                        queue.add(current.rightChild);
-                    }
-
-                    if (current.leaves != null) {
-                        for (Triangle tri : current.leaves) {
-                            Vector3 pt = tri.intersects(camera, ray);
-                            if (pt != null) {
-                                if (closest == null) {
-                                    closest = pt;
-                                    closestTri = tri;
-                                }
-                                else {
-                                    double closestDist = Vector3.sub(camera, closest).mag();
-                                    double newDist = Vector3.sub(camera, pt).mag();
-                                    if (newDist < closestDist) {
-                                        closest = pt;
-                                        closestTri = tri;
-                                    }
-                                }   
-                            }
-
-                        }
-                    }
-
-                }
-
-                if (closest != null && closestTri != null) {
-                    Vector3 edge1 = Vector3.sub(closestTri.a, closestTri.b);
-                    Vector3 edge2 = Vector3.sub(closestTri.a, closestTri.c);
-                    Vector3 norm = Vector3.cross(edge1, edge2).norm();
-                    r = (int)(Vector3.dot(norm, ray) * 0xB5); //B57E3A
-                    g = (int)(Vector3.dot(norm, ray) * 0x7E);
-                    b = (int)(Vector3.dot(norm, ray) * 0x3A);
-                }
-                
-                
-				display.set(x, y, a, r, g, b);
-			}
-            display.repaint();
+        for (int y = this.starty; y < this.endy; y++) {
+			for (int x = 0; x < Main.WIDTH; x++) 
+                renderPixel(x, y, boxQueue);
+            Main.DISPLAY.repaint();
         }
-        
+    } 
+
+    /**
+     * Renders a single pixel on the screen
+     * <p>
+     * This method only updates the buffer so repaint still needs to be called
+     * to actually see the rendered pixel
+     * @param x         the x location of the pixel 
+     * @param y         the y location of the pixel
+     * @param boxQueue  the queue for holding the bounding boxes
+     * @param triQueue  the queue for holding the triangles
+     */
+    private void renderPixel(int x, int y, LinkedList<AABB> boxQueue) {
+
+        Vector3  ray = rays[x + y * Main.WIDTH];
+        Vector3  rayInv = new Vector3(1.0 / ray.x, 1.0 / ray.y, 1.0 / ray.z);
+        int      r = 0;
+        int      g = 0;
+        int      b = 0;
+
+        Vector3  closestPt = null;
+        Triangle closestTri = null;
+        double   closestDist = 0;
+
+        for (Mesh mesh : scene) {
+
+            boxQueue.add(mesh.root);
+
+            boxes:
+            while (boxQueue.size() > 0) {
+
+                AABB   curr = boxQueue.pop();
+                double interDist = curr.intersects(Main.CAMERA, ray, rayInv);
+
+                if (interDist == -1)
+                    continue boxes;
+
+                if (closestPt == null || interDist < closestDist) {
+                    if (curr.leftChild != null)
+                        boxQueue.add(curr.leftChild);
+                    if (curr.rightChild != null)
+                        boxQueue.add(curr.rightChild);
+                }
+
+                if (curr.leaves == null)
+                    continue boxes;
+
+                tris:
+                for (Triangle tri : curr.leaves) {
+
+                    Vector3 pt = tri.intersects(Main.CAMERA, ray);
+
+                    if (pt == null)
+                        continue tris;
+
+                    double newDist = Vector3.sub(Main.CAMERA, pt).mag();
+                    if (closestPt == null || newDist < closestDist) {
+                        closestPt = pt;
+                        closestTri = tri;
+                        closestDist = newDist;
+                    }  
+                    
+                }
+                
+            } /* END bounding queue */
+            
+    
+            /* Not so great shading */
+            if (closestPt != null) {
+                Vector3 edge1 = Vector3.sub(closestTri.a, closestTri.b);
+                Vector3 edge2 = Vector3.sub(closestTri.a, closestTri.c);
+                Vector3 norm = Vector3.cross(edge1, edge2).norm();
+                r = (int)(Vector3.dot(norm, ray) * 0xFF);
+                g = (int)(Vector3.dot(norm, ray) * 0xFF);
+                b = (int)(Vector3.dot(norm, ray) * 0xFF);
+            }
+
+        } 
+
+        Main.DISPLAY.set(x, y, 0xFF, r, g, b);
     }
     
 }

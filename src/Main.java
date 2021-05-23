@@ -1,36 +1,45 @@
+import java.util.LinkedList;
+
 /**
- * Container class for the main method
+ * Container class for the main method. This class also contains the important constants
+ * like screen width and height.
  */
 public class Main {
 
 	/* Constants for defining the width and height of the display in
-	pixels */
-	public static final int WIDTH = 1920; // 1366, 768
-	public static final int HEIGHT = 1080;
-	public static final double ASPECT_RATIO = (double)WIDTH / (double)HEIGHT;
+	pixels. The common resolutions I use are 1366, 768 and 1920, 1080 
+	and 480, 360 */
+	public static final int 	WIDTH 			= 1920; 
+	public static final int 	HEIGHT 			= 1080;
+	public static final double 	ASPECT_RATIO 	= (double)WIDTH / (double)HEIGHT;
+	public static final double 	INV_ASPECT_RATIO = (double)HEIGHT / (double)WIDTH;
 
-	/* Constants for defining the fov. Should be a double in radians */
-	public static final double HORIZONTAL_FOV = Math.PI / 2f;
-	public static final double VERTICAL_FOV = HORIZONTAL_FOV / ASPECT_RATIO;
+	/* constants for the 3D space */
+	public static final Vector3 I_HAT 			= new Vector3(1.0, 0.0, 0.0);
+	public static final Vector3 J_HAT 			= new Vector3(0.0, 1.0, 0.0);
+	public static final Vector3 K_HAT 			= new Vector3(0.0, 0.0, 1.0);
 
+	/* create a display for outputing pixels */
+	public static final Display DISPLAY 		= new Display(WIDTH, HEIGHT);
+
+	/* the veiwing angles of the camera */
+	public static final Vector3 CAMERA  		= new Vector3(-.25, 3.5 * 2, 2.0 * 2);
+	public static final double 	CAMERA_THETA 	= -Math.PI / 2.0;
+	public static final double 	CAMERA_PHI   	= Math.PI / 8.0;
+	
 	/**
-	 * Start of execution
+	 * Start of execution. Instantiates all the rendering threads.
 	 * 
 	 * @param args unused
 	 */
 	public static void main(String[] args) {
 
-		/* create a camera and a display for outputing pixels and knowing where
-		the rays will originate from */
-		Display display = new Display(WIDTH, HEIGHT); 
-		Vector3 camera  = new Vector3(0.0, 4.0, 0.0);
+		/* Create a 'scene' to add all the meshes to */
+		LinkedList<Mesh> scene = new LinkedList<Mesh>();
 
-		/* the veiwing angles of the camera */
-		double cameraTheta =  -Math.PI / 2.0;
-		double cameraPhi   =  0 * Math.PI / 2.0;
-
-		/* create a mesh to render */
-		Mesh teapot = new Mesh("bunny.obj");
+		/* Add all the meshes to the scene */
+		scene.add(new Mesh("bunny.obj", .5, new Vector3(0.0, 2.0, 2.0)));
+		scene.add(new Mesh("bunny.obj", 2, new Vector3(0.0, 0.0, -3.0)));
 
 		/**
 		 * This loop will compute all of the rays, one for each pixel. It makes each
@@ -40,26 +49,20 @@ public class Main {
 		 * It's done this way because simply rotating unit vectors by the viewing angles 
 		 * creates a fish eye effect.
 		 * 
-		 * It should be noted that x and y in screen space corrispond to x and z in 3d
+		 * It should be noted that x and y in screen space corrispond to y and z in 3d
 		 * space before the rotations.
 		 */
-
-		/* create an array to hold all the pre-computed rays for each pixel */
 		Vector3[] rays = new Vector3[WIDTH * HEIGHT];
-
-		Vector3 topLeft = new Vector3(1.0, 1.0, ASPECT_RATIO / 2.0);
-		Vector3 xoffset = new Vector3(0.0, -2.0 / (double)WIDTH, 0.0);
-		Vector3 yoffset = new Vector3(0.0, 0.0, -2.0 / ASPECT_RATIO / (double)HEIGHT);
-
 		for (int y = 0; y < HEIGHT; y++) {
 			for (int x = 0; x < WIDTH; x++) {
-				Vector3 ray = topLeft;
-				ray = Vector3.scaleAdd(ray, xoffset, x);
-				ray = Vector3.scaleAdd(ray, yoffset, y);
-				ray = ray.norm();
-				ray = Vector3.rotate(ray, new Vector3(0.0, 1.0, 0.0), cameraPhi);
-				ray = Vector3.rotate(ray, new Vector3(0.0, 0.0, 1.0), cameraTheta);
-				rays[x + y * WIDTH] = ray;
+				Vector3 ray = new Vector3(
+					1.0,
+					1.0 - 2.0 * x / (double)WIDTH,
+					INV_ASPECT_RATIO - 2.0 * INV_ASPECT_RATIO * y / (double)HEIGHT
+				);
+				ray = Vector3.rotate(ray, J_HAT, CAMERA_PHI);
+				ray = Vector3.rotate(ray, K_HAT, CAMERA_THETA);
+				rays[x + y * WIDTH] = ray.norm();
 			}
 		}
 		
@@ -67,11 +70,18 @@ public class Main {
 		 * Create all the rendering threads to actually output the picture. Each thread 
 		 * is created to render a horizontal band of the screen.
 		 */
+		/* for(String arg : args)
+		if (arg == "-m") { */
 		int cores = Runtime.getRuntime().availableProcessors();
 		int threadWidth = HEIGHT / cores;
 
 		for (int i = 0; i < cores; i++)
 			new RenderThread(i * threadWidth, i * threadWidth + threadWidth, 
-			teapot, display, camera, rays).start();
+			scene, rays).start();
+		
+			/* new RenderThread(0, HEIGHT, scene, rays).start(); */
+		
+
+
 	}
 }
