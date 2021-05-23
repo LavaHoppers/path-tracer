@@ -51,7 +51,7 @@ public class Main {
 					break parse;
 			}
 		}
-		
+
 		/* Create a 'scene' to add all the meshes to */
 		LinkedList<Mesh> scene = new LinkedList<Mesh>();
 
