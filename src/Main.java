@@ -23,23 +23,41 @@ public class Main {
 	public static final Display DISPLAY 		= new Display(WIDTH, HEIGHT);
 
 	/* the veiwing angles of the camera */
-	public static final Vector3 CAMERA  		= new Vector3(-.25, 3.5 * 2, 2.0 * 2);
+	public static final Vector3 CAMERA  		= new Vector3(0, 5.25, 3.0);
 	public static final double 	CAMERA_THETA 	= -Math.PI / 2.0;
 	public static final double 	CAMERA_PHI   	= Math.PI / 8.0;
+
+	/* Flags for runtime */
+	public static boolean MULTITHREADED = false;
 	
 	/**
 	 * Start of execution. Instantiates all the rendering threads.
 	 * 
-	 * @param args unused
+	 * @param args flags for runtime
 	 */
 	public static void main(String[] args) {
 
+		/* parse the runtime arguments */
+		for (String arg : args) {
+			parse:
+			switch (arg) {
+				case "-m":
+				case "-M":
+				case "Multithread":
+				case "multithread":
+					MULTITHREADED = true;
+					break parse;
+				default:
+					break parse;
+			}
+		}
+		
 		/* Create a 'scene' to add all the meshes to */
 		LinkedList<Mesh> scene = new LinkedList<Mesh>();
 
 		/* Add all the meshes to the scene */
-		scene.add(new Mesh("bunny.obj", .5, new Vector3(0.0, 2.0, 2.0)));
-		scene.add(new Mesh("bunny.obj", 2, new Vector3(0.0, 0.0, -3.0)));
+		scene.add(new Mesh("obj/bunny.obj", 1, new Vector3(-2.0, 0, 0)));
+		scene.add(new Mesh("obj/teapot.obj", .75, new Vector3(2.0, 0, .5)));
 
 		/**
 		 * This loop will compute all of the rays, one for each pixel. It makes each
@@ -70,16 +88,16 @@ public class Main {
 		 * Create all the rendering threads to actually output the picture. Each thread 
 		 * is created to render a horizontal band of the screen.
 		 */
-		/* for(String arg : args)
-		if (arg == "-m") { */
-		int cores = Runtime.getRuntime().availableProcessors();
-		int threadWidth = HEIGHT / cores;
+		if (MULTITHREADED) {
+			int cores = Runtime.getRuntime().availableProcessors();
+			int threadWidth = HEIGHT / cores;
 
-		for (int i = 0; i < cores; i++)
-			new RenderThread(i * threadWidth, i * threadWidth + threadWidth, 
-			scene, rays).start();
-		
-			/* new RenderThread(0, HEIGHT, scene, rays).start(); */
+			for (int i = 0; i < cores; i++)
+				new RenderThread(i * threadWidth, i * threadWidth + threadWidth, 
+				scene, rays).start();
+		} else {
+			new RenderThread(0, HEIGHT, scene, rays).start();
+		} 
 		
 
 

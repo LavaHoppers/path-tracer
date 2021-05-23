@@ -131,13 +131,12 @@ class Display {
 	 * @see <a href = https://stackoverflow.com/questions/13638793>stackoverflow</a>
 	 * @param x the x location of the pixel
 	 * @param y the y location of the pixel
-	 * @param a the alpha value of the pixel
 	 * @param r the red value of the pixel
 	 * @param g the green value of the pixel
 	 * @param b the blue value of the pixel
 	 */
-	public void set(int x, int y, int a, int r, int g, int b) {
-		data.setElem(x + y * width, a << 24 | r << 16 | g << 8 | b);
+	public void set(int x, int y, int r, int g, int b) {
+		data.setElem(x + y * width, 0xFF000000 | r << 16 | g << 8 | b);
 	}
 
 

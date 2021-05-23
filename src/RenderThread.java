@@ -123,17 +123,17 @@ public class RenderThread extends Thread {
     
             /* Not so great shading */
             if (closestPt != null) {
-                Vector3 edge1 = Vector3.sub(closestTri.a, closestTri.b);
-                Vector3 edge2 = Vector3.sub(closestTri.a, closestTri.c);
+                Vector3 edge1 = Vector3.sub(closestTri.b, closestTri.a);
+                Vector3 edge2 = Vector3.sub(closestTri.c, closestTri.a);
                 Vector3 norm = Vector3.cross(edge1, edge2).norm();
-                r = (int)(Vector3.dot(norm, ray) * 0xFF);
-                g = (int)(Vector3.dot(norm, ray) * 0xFF);
-                b = (int)(Vector3.dot(norm, ray) * 0xFF);
+                double dot = Vector3.dot(norm, ray);
+                dot = Math.abs(dot);
+                r = g = b = (int)(dot * 0xFF);
             }
 
         } 
 
-        Main.DISPLAY.set(x, y, 0xFF, r, g, b);
+        Main.DISPLAY.set(x, y, r, g, b);
     }
     
 }
