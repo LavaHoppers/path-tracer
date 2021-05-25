@@ -35,28 +35,28 @@ class Triangle {
     public Vector3 intersects(Vector3 rayOrigin, Vector3 rayVector) {
         
         double epsilon = 0.0000001;
-        Vector3 edge1 = Vector3.sub(this.b, this.a);
-        Vector3 edge2 = Vector3.sub(this.c, this.a);
-        Vector3 h = Vector3.cross(rayVector, edge2);
-        double a = Vector3.dot(edge1, h);
+        Vector3 edge1 = this.b.sub(this.a);
+        Vector3 edge2 = this.c.sub(this.a);
+        Vector3 h = rayVector.cross(edge2);
+        double a = edge1.dot(h);
 
         if (-epsilon < a && a < epsilon)
             return null;    
 
         double f = 1f / a;
-        Vector3 s = Vector3.sub(rayOrigin, this.a);
-        double u = f * (Vector3.dot(s, h));
+        Vector3 s = rayOrigin.sub(this.a);
+        double u = f * (s.dot(h));
         if (u < 0 || 1 < u)
             return null;
         
-        Vector3 q = Vector3.cross(s, edge1);
-        double v = f * Vector3.dot(rayVector, q);
+        Vector3 q = s.cross(edge1);
+        double v = f * rayVector.dot(q);
         if (v < 0 || 1 < u + v)
             return null;
     
-        double t = f * Vector3.dot(edge2, q);
+        double t = f * edge2.dot(q);
         if (epsilon < t) {
-            return Vector3.scaleAdd(rayOrigin, rayVector, t);
+            return rayOrigin.scaleAdd(rayVector, t);
         } else {
             return null;
         }

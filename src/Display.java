@@ -8,8 +8,7 @@ import java.awt.event.*;
  * <p>
  * This class makes use of a buffered image's databuffer to significantly speed
  * up the process of displaying a ray traced image.
- * @author Joshua Hopwood
- * @see <a href=https://github.com/lavahoppers>GitHub</a>
+ * @author <a href=https://github.com/lavahoppers>Joshua Hopwood</a>
  */
 class Display {
 

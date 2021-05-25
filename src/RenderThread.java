@@ -69,7 +69,7 @@ public class RenderThread extends Thread {
     private void renderPixel(int x, int y, LinkedList<AABB> boxQueue) {
 
         Vector3  ray = rays[x + y * Main.WIDTH];
-        Vector3  rayInv = new Vector3(1.0 / ray.x, 1.0 / ray.y, 1.0 / ray.z);
+        Vector3  rayInv = new Vector3(1.0 / ray.getX(), 1.0 / ray.getY(), 1.0 / ray.getZ());
         int      r = 0;
         int      g = 0;
         int      b = 0;
@@ -109,7 +109,7 @@ public class RenderThread extends Thread {
                     if (pt == null)
                         continue tris;
 
-                    double newDist = Vector3.sub(Main.CAMERA, pt).mag();
+                    double newDist = Main.CAMERA.sub(pt).mag();
                     if (closestPt == null || newDist < closestDist) {
                         closestPt = pt;
                         closestTri = tri;
@@ -123,10 +123,10 @@ public class RenderThread extends Thread {
     
             /* Not so great shading */
             if (closestPt != null) {
-                Vector3 edge1 = Vector3.sub(closestTri.b, closestTri.a);
-                Vector3 edge2 = Vector3.sub(closestTri.c, closestTri.a);
-                Vector3 norm = Vector3.cross(edge1, edge2).norm();
-                double dot = Vector3.dot(norm, ray);
+                Vector3 edge1 = closestTri.b.sub(closestTri.a);
+                Vector3 edge2 = closestTri.c.sub(closestTri.a);
+                Vector3 norm = edge1.cross(edge2).norm();
+                double dot = norm.dot(ray);
                 dot = Math.abs(dot);
                 r = g = b = (int)(dot * 0xFF);
             }

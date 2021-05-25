@@ -9,8 +9,8 @@ public class Main {
 	/* Constants for defining the width and height of the display in
 	pixels. The common resolutions I use are 1366, 768 and 1920, 1080 
 	and 480, 360 */
-	public static final int 	WIDTH 			= 1920; 
-	public static final int 	HEIGHT 			= 1080;
+	public static final int 	WIDTH 			= 1366; 
+	public static final int 	HEIGHT 			= 768;
 	public static final double 	ASPECT_RATIO 	= (double)WIDTH / (double)HEIGHT;
 	public static final double 	INV_ASPECT_RATIO = (double)HEIGHT / (double)WIDTH;
 
@@ -23,9 +23,9 @@ public class Main {
 	public static final Display DISPLAY 		= new Display(WIDTH, HEIGHT);
 
 	/* the veiwing angles of the camera */
-	public static final Vector3 CAMERA  		= new Vector3(0, 5.25, 3.0);
+	public static final Vector3 CAMERA  		= new Vector3(0, 1500.25, 1000.0);
 	public static final double 	CAMERA_THETA 	= -Math.PI / 2.0;
-	public static final double 	CAMERA_PHI   	= Math.PI / 8.0;
+	public static final double 	CAMERA_PHI   	= Math.PI / 6.0;
 
 	/* Flags for runtime */
 	public static boolean MULTITHREADED = false;
@@ -56,8 +56,11 @@ public class Main {
 		LinkedList<Mesh> scene = new LinkedList<Mesh>();
 
 		/* Add all the meshes to the scene */
-		scene.add(new Mesh("obj/bunny.obj", 1, new Vector3(-2.0, 0, 0)));
-		scene.add(new Mesh("obj/teapot.obj", .75, new Vector3(2.0, 0, .5)));
+		for (Mesh mesh : OBJReader.read("obj/buildings.obj")) {
+			mesh.buildBVH();
+			scene.add(mesh);
+		}
+
 
 		/**
 		 * This loop will compute all of the rays, one for each pixel. It makes each
