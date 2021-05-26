@@ -8,4 +8,5 @@ pause
 :: Run the latest compiled .class files found in ./bin
 :: Runtime flags:
 :: -m enable multithreading
+:: -a enable antialiasing
 java -cp bin Main -m

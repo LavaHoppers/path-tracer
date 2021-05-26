@@ -49,11 +49,20 @@ public class RenderThread extends Thread {
 
         LinkedList<AABB>     boxQueue = new LinkedList<AABB>();
 
-        for (int y = this.starty; y < this.endy; y++) {
+        /* for (int y = starty; y < endy; y++) {
 			for (int x = 0; x < Main.WIDTH; x++) 
                 renderPixel(x, y, boxQueue);
             Main.DISPLAY.repaint();
-        }
+        } */
+
+        int finaly = endy + Main.THREAD_HEIGHT > Main.HEIGHT ? Main.HEIGHT : endy + Main.THREAD_HEIGHT;
+        int finalx = starty + Main.THREAD_WIDTH > Main.WIDTH ? Main.WIDTH : starty + Main.THREAD_WIDTH;
+
+        for (int y = endy; y < finaly; y++) 
+			for (int x = starty; x < finalx; x++) 
+                renderPixel(x, y, boxQueue);
+        Main.DISPLAY.repaint();
+        
     } 
 
     /**
@@ -68,70 +77,150 @@ public class RenderThread extends Thread {
      */
     private void renderPixel(int x, int y, LinkedList<AABB> boxQueue) {
 
-        Vector3  ray = rays[x + y * Main.WIDTH];
-        Vector3  rayInv = new Vector3(1.0 / ray.getX(), 1.0 / ray.getY(), 1.0 / ray.getZ());
-        int      r = 0;
-        int      g = 0;
-        int      b = 0;
+        int r = 0;
+        int g = 0;
+        int b = 0;
 
-        Vector3  closestPt = null;
-        Triangle closestTri = null;
-        double   closestDist = 0;
+        if (Main.ANTIALIASED) {
 
-        for (Mesh mesh : scene) {
+            for (int i = 0; i < Main.ANTIALIASING; i++) {
+                for (int j = 0; j < Main.ANTIALIASING; j++) {
 
-            boxQueue.add(mesh.root);
-
-            boxes:
-            while (boxQueue.size() > 0) {
-
-                AABB   curr = boxQueue.pop();
-                double interDist = curr.intersects(Main.CAMERA, ray, rayInv);
-
-                if (interDist == -1)
-                    continue boxes;
-
-                if (closestPt == null || interDist < closestDist) {
-                    if (curr.leftChild != null)
-                        boxQueue.add(curr.leftChild);
-                    if (curr.rightChild != null)
-                        boxQueue.add(curr.rightChild);
-                }
-
-                if (curr.leaves == null)
-                    continue boxes;
-
-                tris:
-                for (Triangle tri : curr.leaves) {
-
-                    Vector3 pt = tri.intersects(Main.CAMERA, ray);
-
-                    if (pt == null)
-                        continue tris;
-
-                    double newDist = Main.CAMERA.sub(pt).mag();
-                    if (closestPt == null || newDist < closestDist) {
-                        closestPt = pt;
-                        closestTri = tri;
-                        closestDist = newDist;
-                    }  
+                    Vector3  ray = rays[x * Main.ANTIALIASING + j + (Main.ANTIALIASING * y + i) * Main.WIDTH * Main.ANTIALIASING];
+                    Vector3  rayInv = new Vector3(1.0 / ray.getX(), 1.0 / ray.getY(), 1.0 / ray.getZ());
                     
-                }
-                
-            } /* END bounding queue */
-            
-    
-            /* Not so great shading */
-            if (closestPt != null) {
-                Vector3 edge1 = closestTri.b.sub(closestTri.a);
-                Vector3 edge2 = closestTri.c.sub(closestTri.a);
-                Vector3 norm = edge1.cross(edge2).norm();
-                double dot = norm.dot(ray);
-                dot = Math.abs(dot);
-                r = g = b = (int)(dot * 0xFF);
-            }
 
-        } 
+                    Vector3  closestPt = null;
+                    Triangle closestTri = null;
+                    double   closestDist = 0;
+
+
+                    for (Mesh mesh : scene) {
+
+                        boxQueue.add(mesh.root);
+
+                        boxes:
+                        while (boxQueue.size() > 0) {
+
+                            AABB   curr = boxQueue.pop();
+                            double interDist = curr.intersects(Main.CAMERA, ray, rayInv);
+
+                            if (interDist == -1)
+                                continue boxes;
+
+                            if (closestPt == null || interDist < closestDist) {
+                                if (curr.leftChild != null)
+                                    boxQueue.add(curr.leftChild);
+                                if (curr.rightChild != null)
+                                    boxQueue.add(curr.rightChild);
+                            }
+
+                            if (curr.leaves == null)
+                                continue boxes;
+
+                            tris:
+                            for (Triangle tri : curr.leaves) {
+
+                                double distance = tri.intersects(Main.CAMERA, ray);
+
+                                if (distance == -1)
+                                    continue tris;
+
+                                if (closestPt == null || distance < closestDist) {
+                                    closestPt = Main.CAMERA.copy().setScaleAdd(ray, distance);
+                                    closestTri = tri;
+                                    closestDist = distance;
+                                }  
+                                
+                            }
+                            
+                        } /* END bounding queue */
+                        
+                
+                        /* Not so great shading */
+                        if (closestPt != null) {
+                            Vector3 edge1 = closestTri.b.sub(closestTri.a);
+                            Vector3 edge2 = closestTri.c.sub(closestTri.a);
+                            Vector3 norm = edge1.cross(edge2).norm();
+                            double dot = norm.dot(ray);
+                            dot = Math.abs(dot);
+                            r += (int)(dot * 0xFF);
+                            g += (int)(dot * 0xFF);
+                            b += (int)(dot * 0xFF);
+                        }
+
+                    }
+                }
+            }
+            
+            r /= Main.ANTIALIASING * Main.ANTIALIASING;
+            g /= Main.ANTIALIASING * Main.ANTIALIASING;
+            b /= Main.ANTIALIASING * Main.ANTIALIASING;
+
+        } else {
+            Vector3  ray = rays[x + y * Main.WIDTH];
+            Vector3  rayInv = new Vector3(1.0 / ray.getX(), 1.0 / ray.getY(), 1.0 / ray.getZ());
+            
+
+            Vector3  closestPt = null;
+            Triangle closestTri = null;
+            double   closestDist = 0;
+
+
+            for (Mesh mesh : scene) {
+
+                boxQueue.add(mesh.root);
+
+                boxes:
+                while (boxQueue.size() > 0) {
+
+                    AABB   curr = boxQueue.pop();
+                    double interDist = curr.intersects(Main.CAMERA, ray, rayInv);
+
+                    if (interDist == -1)
+                        continue boxes;
+
+                    if (closestPt == null || interDist < closestDist) {
+                        if (curr.leftChild != null)
+                            boxQueue.add(curr.leftChild);
+                        if (curr.rightChild != null)
+                            boxQueue.add(curr.rightChild);
+                    }
+
+                    if (curr.leaves == null)
+                        continue boxes;
+
+                    tris:
+                    for (Triangle tri : curr.leaves) {
+
+                        double distance = tri.intersects(Main.CAMERA, ray);
+
+                        if (distance == -1)
+                            continue tris;
+
+                        if (closestPt == null || distance < closestDist) {
+                            closestPt = Main.CAMERA.copy().setScaleAdd(ray, distance);;
+                            closestTri = tri;
+                            closestDist = distance;
+                        }    
+                        
+                    }
+                    
+                } /* END bounding queue */
+                
+        
+                /* Not so great shading */
+                if (closestPt != null) {
+                    Vector3 edge1 = closestTri.b.sub(closestTri.a);
+                    Vector3 edge2 = closestTri.c.sub(closestTri.a);
+                    Vector3 norm = edge1.cross(edge2).norm();
+                    double dot = norm.dot(ray);
+                    dot = Math.abs(dot);
+                    r = g = b = (int)(dot * 0xFF);
+                }
+
+            }
+        }
 
         Main.DISPLAY.set(x, y, r, g, b);
     }

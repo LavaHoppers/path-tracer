@@ -45,6 +45,16 @@ class Vector3 {
     }
 
     /**
+     * Copy the components of one vector to another
+     * @param a
+     */
+    public void set(Vector3 a){
+        this.x = a.x;
+        this.y = a.y;
+        this.z = a.z;
+    }
+
+    /**
      * return the x component of the caller
      * 
      * @return the x component of the caller

@@ -32,35 +32,39 @@ class Triangle {
      * @param tri the triangle
      * @return null if there is no intersection, the point of intersection otherwise
      */
-    public Vector3 intersects(Vector3 rayOrigin, Vector3 rayVector) {
+    public double intersects(Vector3 rayOrigin, Vector3 rayVector) {
         
         double epsilon = 0.0000001;
-        Vector3 edge1 = this.b.sub(this.a);
-        Vector3 edge2 = this.c.sub(this.a);
+        Vector3 edge1 = b.sub(a);
+        Vector3 edge2 = c.sub(a);
         Vector3 h = rayVector.cross(edge2);
         double a = edge1.dot(h);
 
         if (-epsilon < a && a < epsilon)
-            return null;    
+            return -1;    
 
         double f = 1f / a;
         Vector3 s = rayOrigin.sub(this.a);
         double u = f * (s.dot(h));
         if (u < 0 || 1 < u)
-            return null;
+            return -1;
         
         Vector3 q = s.cross(edge1);
         double v = f * rayVector.dot(q);
         if (v < 0 || 1 < u + v)
-            return null;
+            return -1;
     
         double t = f * edge2.dot(q);
         if (epsilon < t) {
-            return rayOrigin.scaleAdd(rayVector, t);
+            return t;
         } else {
-            return null;
+            return -1;
         }
         
+    }
+
+    public Vector3 norm() {
+        return (b.sub(a)).cross(c.sub(a)).setNorm();
     }
 
     
