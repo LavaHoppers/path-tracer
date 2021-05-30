@@ -1,5 +1,5 @@
 import java.lang.Thread;
-import java.util.LinkedList;
+
 /**
  * An instantiable class designed to render a certain portion of pixels on the screen.
  * The RenderThread should be created, passed the pixels to render, and the necessary info
@@ -15,27 +15,26 @@ import java.util.LinkedList;
  */
 public class RenderThread extends Thread {
 
-    private int starty;
-    private int endy;
+    public static int THREAD_WIDTH = 0;
+	public static int THREAD_HEIGHT = 0;
+	public static int RUNNING_THREADS = 0;
+	public static int DEAD_THREADS = 0;
 
-    private LinkedList<Mesh> scene;
-    private Vector3[] rays;
+    private int x;
+    private int y;
 
     /**
      * Create a new rendering thread to render the portion of the screen from the starting y
      * value to the ending y value. 
      * 
-     * @param starty the starting y value of the threa
-     * @param endy the ending y value
-     * @param scene the mesh to render
-     * @param rays the array of all the initial veiwing rays from the camera
+     * @param x the starting x value of the thread
+     * @param y the ending y value
+
      */
-    RenderThread(int starty, int endy, LinkedList<Mesh> scene, Vector3[] rays) {
+    RenderThread(int x, int y) {
         super(); // let this thread name itself
-        this.starty = starty;
-        this.endy = endy;
-        this.scene = scene;
-        this.rays = rays;
+        this.x = x;
+        this.y = y;
     }
 
     /**
@@ -47,21 +46,14 @@ public class RenderThread extends Thread {
     @Override
     public void run() {
 
-        LinkedList<AABB>     boxQueue = new LinkedList<AABB>();
+        int finaly = y + THREAD_HEIGHT > Main.HEIGHT ? Main.HEIGHT : y + THREAD_HEIGHT;
+        int finalx = x + THREAD_WIDTH > Main.WIDTH ? Main.WIDTH : x + THREAD_WIDTH;
 
-        /* for (int y = starty; y < endy; y++) {
-			for (int x = 0; x < Main.WIDTH; x++) 
-                renderPixel(x, y, boxQueue);
-            Main.DISPLAY.repaint();
-        } */
-
-        int finaly = endy + Main.THREAD_HEIGHT > Main.HEIGHT ? Main.HEIGHT : endy + Main.THREAD_HEIGHT;
-        int finalx = starty + Main.THREAD_WIDTH > Main.WIDTH ? Main.WIDTH : starty + Main.THREAD_WIDTH;
-
-        for (int y = endy; y < finaly; y++) 
-			for (int x = starty; x < finalx; x++) 
-                renderPixel(x, y, boxQueue);
+        for (int y = this.y; y < finaly; y++) 
+			for (int x = this.x; x < finalx; x++) 
+                renderPixel(x, y);
         Main.DISPLAY.repaint();
+        DEAD_THREADS++;
         
     } 
 
@@ -72,157 +64,31 @@ public class RenderThread extends Thread {
      * to actually see the rendered pixel
      * @param x         the x location of the pixel 
      * @param y         the y location of the pixel
-     * @param boxQueue  the queue for holding the bounding boxes
-     * @param triQueue  the queue for holding the triangles
      */
-    private void renderPixel(int x, int y, LinkedList<AABB> boxQueue) {
+    private void renderPixel(int x, int y) {
 
-        int r = 0;
-        int g = 0;
-        int b = 0;
+        int c = 0;
 
-        if (Main.ANTIALIASED) {
+        for (int i = 0; i < Main.ANTIALIASING; i++) {
+            for (int j = 0; j < Main.ANTIALIASING; j++) {
 
-            for (int i = 0; i < Main.ANTIALIASING; i++) {
-                for (int j = 0; j < Main.ANTIALIASING; j++) {
-
-                    Vector3  ray = rays[x * Main.ANTIALIASING + j + (Main.ANTIALIASING * y + i) * Main.WIDTH * Main.ANTIALIASING];
-                    Vector3  rayInv = new Vector3(1.0 / ray.getX(), 1.0 / ray.getY(), 1.0 / ray.getZ());
-                    
-
-                    Vector3  closestPt = null;
-                    Triangle closestTri = null;
-                    double   closestDist = 0;
-
-
-                    for (Mesh mesh : scene) {
-
-                        boxQueue.add(mesh.root);
-
-                        boxes:
-                        while (boxQueue.size() > 0) {
-
-                            AABB   curr = boxQueue.pop();
-                            double interDist = curr.intersects(Main.CAMERA, ray, rayInv);
-
-                            if (interDist == -1)
-                                continue boxes;
-
-                            if (closestPt == null || interDist < closestDist) {
-                                if (curr.leftChild != null)
-                                    boxQueue.add(curr.leftChild);
-                                if (curr.rightChild != null)
-                                    boxQueue.add(curr.rightChild);
-                            }
-
-                            if (curr.leaves == null)
-                                continue boxes;
-
-                            tris:
-                            for (Triangle tri : curr.leaves) {
-
-                                double distance = tri.intersects(Main.CAMERA, ray);
-
-                                if (distance == -1)
-                                    continue tris;
-
-                                if (closestPt == null || distance < closestDist) {
-                                    closestPt = Main.CAMERA.copy().setScaleAdd(ray, distance);
-                                    closestTri = tri;
-                                    closestDist = distance;
-                                }  
-                                
-                            }
-                            
-                        } /* END bounding queue */
-                        
-                
-                        /* Not so great shading */
-                        if (closestPt != null) {
-                            Vector3 edge1 = closestTri.b.sub(closestTri.a);
-                            Vector3 edge2 = closestTri.c.sub(closestTri.a);
-                            Vector3 norm = edge1.cross(edge2).norm();
-                            double dot = norm.dot(ray);
-                            dot = Math.abs(dot);
-                            r += (int)(dot * 0xFF);
-                            g += (int)(dot * 0xFF);
-                            b += (int)(dot * 0xFF);
-                        }
-
-                    }
-                }
-            }
-            
-            r /= Main.ANTIALIASING * Main.ANTIALIASING;
-            g /= Main.ANTIALIASING * Main.ANTIALIASING;
-            b /= Main.ANTIALIASING * Main.ANTIALIASING;
-
-        } else {
-            Vector3  ray = rays[x + y * Main.WIDTH];
-            Vector3  rayInv = new Vector3(1.0 / ray.getX(), 1.0 / ray.getY(), 1.0 / ray.getZ());
-            
-
-            Vector3  closestPt = null;
-            Triangle closestTri = null;
-            double   closestDist = 0;
-
-
-            for (Mesh mesh : scene) {
-
-                boxQueue.add(mesh.root);
-
-                boxes:
-                while (boxQueue.size() > 0) {
-
-                    AABB   curr = boxQueue.pop();
-                    double interDist = curr.intersects(Main.CAMERA, ray, rayInv);
-
-                    if (interDist == -1)
-                        continue boxes;
-
-                    if (closestPt == null || interDist < closestDist) {
-                        if (curr.leftChild != null)
-                            boxQueue.add(curr.leftChild);
-                        if (curr.rightChild != null)
-                            boxQueue.add(curr.rightChild);
-                    }
-
-                    if (curr.leaves == null)
-                        continue boxes;
-
-                    tris:
-                    for (Triangle tri : curr.leaves) {
-
-                        double distance = tri.intersects(Main.CAMERA, ray);
-
-                        if (distance == -1)
-                            continue tris;
-
-                        if (closestPt == null || distance < closestDist) {
-                            closestPt = Main.CAMERA.copy().setScaleAdd(ray, distance);;
-                            closestTri = tri;
-                            closestDist = distance;
-                        }    
-                        
-                    }
-                    
-                } /* END bounding queue */
-                
+                Vector3 ray = Main.RAYS[
+                    (x * Main.ANTIALIASING + j) + 
+                    (y * Main.ANTIALIASING + i) * Main.WIDTH * Main.ANTIALIASING
+                ];
         
-                /* Not so great shading */
-                if (closestPt != null) {
-                    Vector3 edge1 = closestTri.b.sub(closestTri.a);
-                    Vector3 edge2 = closestTri.c.sub(closestTri.a);
-                    Vector3 norm = edge1.cross(edge2).norm();
-                    double dot = norm.dot(ray);
-                    dot = Math.abs(dot);
-                    r = g = b = (int)(dot * 0xFF);
-                }
+                Vector3 pt = new Vector3();
+                Vector3 norm = new Vector3();
 
+                if (Main.SCENE.intersect(Main.CAMERA, ray, pt, norm, null))  {
+                    double dot = ray.dot(norm) > 0 ? ray.dot(norm) : -ray.dot(norm);
+                    c += (int)(dot * 0xFF);
+                }
             }
         }
 
-        Main.DISPLAY.set(x, y, r, g, b);
+        c /= Main.ANTIALIASING * Main.ANTIALIASING;
+        Main.DISPLAY.set(x, y, c, c, c);
     }
     
 }

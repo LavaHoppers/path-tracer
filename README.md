@@ -6,4 +6,4 @@ This path tracer runs on the CPU and can take advantage of multi threading to ac
 
 This nice picture of a teapot and a bunny was rendered in full HD in less than five seconds from compiling!
 
-![Teapot and Bunny](example.png)
+![Teapot and Bunny](img/example.png)

@@ -7,6 +7,11 @@
  */
 class Vector3 {
 
+    /* constants for the 3D space */
+	public static final Vector3 I_HAT = new Vector3(1.0, 0.0, 0.0);
+	public static final Vector3 J_HAT = new Vector3(0.0, 1.0, 0.0);
+	public static final Vector3 K_HAT = new Vector3(0.0, 0.0, 1.0);
+
     private double x;
     private double y;
     private double z;
@@ -114,7 +119,7 @@ class Vector3 {
      * @return the element-wise reciprocal of the caller
      */
     public Vector3 reciprocal() {
-        return new Vector3(1.0 / this.x, 1.0 / this.y, 1.0 / this.z);
+        return new Vector3(1.0 / x, 1.0 / y, 1.0 / z);
     }
 
     /**
@@ -448,8 +453,9 @@ class Vector3 {
         double ty = cos * p.y - qx * p.z + qz * p.x;
         double tz = cos * p.z + qx * p.y - qy * p.x;
 
-        return new Vector3(tw * qxp + tx * cos + ty * qzp - tz * qyp, tw * qyp - tx * qzp + ty * cos + tz * qxp,
-                tw * qzp + tx * qyp - ty * qxp + tz * cos);
+        return new Vector3(
+            tw * qxp + tx * cos + ty * qzp - tz * qyp, tw * qyp - tx * qzp + ty * cos + tz * qxp,
+            tw * qzp + tx * qyp - ty * qxp + tz * cos);
 
     }
 

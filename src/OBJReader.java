@@ -54,15 +54,23 @@ public class OBJReader {
                     break;
 
                 case "v": // verticies
-                    currentMesh.verticies.add(new Vector3(Double.parseDouble(parsed[1]), Double.parseDouble(parsed[3]),
-                            Double.parseDouble(parsed[2])));
+                    try {
+                        double x = Double.parseDouble(parsed[1]);
+                        double y = Double.parseDouble(parsed[3]);
+                        double z = Double.parseDouble(parsed[2]);
+                        currentMesh.verticies.add(new Vector3(x, y, z));
+                    } catch (Exception e) {
+                        System.out.println("Failed to load vertex information for: " + line);
+                        currentMesh.verticies.add(new Vector3());
+                    }
+
                     break;
 
                 case "vn": // vertex normals
                     break;
 
                 case "mtllib":
-                    String matPath = parsed[1];
+                    //String matPath = parsed[1];
                     break;
 
                 case "usemtl": // use a material

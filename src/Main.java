@@ -1,79 +1,131 @@
-import java.util.LinkedList;
+/*
+ * Main.java
+ * 
+ * 29 May 2021
+ */
+
+import java.io.File;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
 
 /**
- * Container class for the main method. This class also contains the important constants
- * like screen width and height.
+ * Container class for the main method.
+ * 
+ * @version 1.0.0
+ * @author <a href=https://github.com/lavahoppers>Joshua Hopwood</a>
  */
 public class Main {
 
 	/* Constants for defining the width and height of the display in
 	pixels. The common resolutions I use are 1366, 768 and 1920, 1080 
 	and 480, 360 */
-	public static final int 	WIDTH 			= 1920; 
-	public static final int 	HEIGHT 			= 1080;
-	public static final double 	ASPECT_RATIO 	= (double)WIDTH / (double)HEIGHT;
-	public static final double 	INV_ASPECT_RATIO = (double)HEIGHT / (double)WIDTH;
-
-	/* constants for the 3D space */
-	public static final Vector3 I_HAT 			= new Vector3(1.0, 0.0, 0.0);
-	public static final Vector3 J_HAT 			= new Vector3(0.0, 1.0, 0.0);
-	public static final Vector3 K_HAT 			= new Vector3(0.0, 0.0, 1.0);
-
+	public static int 			WIDTH 			 = 480; 
+	public static int 			HEIGHT 			 = 360;
+	public static double 		ASPECT_RATIO 	 = 0;
+	public static double 		INV_ASPECT_RATIO = 0;
 	/* create a display for outputing pixels */
-	public static final Display DISPLAY 		= new Display(WIDTH, HEIGHT);
-
+	public static Display 		DISPLAY 		= null;
 	/* the veiwing angles of the camera */
-	public static final Vector3 CAMERA  		= new Vector3(-2.5, 3.7525, 3.000);
-	public static final double 	CAMERA_THETA 	= -Math.PI / 3.0;
-	public static final double 	CAMERA_PHI   	= Math.PI / 8.0;
-
-	public static final int 	THREAD_WIDTH 	= 100;
-	public static final int 	THREAD_HEIGHT 	= 100;
-
+	public static final Vector3 CAMERA  		= new Vector3(0, 50, 30);
+	public static final double 	CAMERA_THETA 	= -Math.PI / 2.0; //+ Math.PI;
+	public static final double 	CAMERA_PHI   	= Math.PI / 2.0 / 2.0;
 	/* Flags for runtime */
 	public static boolean 		MULTITHREADED 	= false;
-	public static boolean		ANTIALIASED		= false;
-	public static int 			ANTIALIASING	= 8;
+	public static int 			ANTIALIASING	= 1;
+	/* The scene */
+	public static Scene			SCENE   		= new Scene();
+	public static Vector3[]		RAYS  			= null;
+	public static boolean 		SAVE_AS_FILE	= false;
+
+	public static FastBufferedImage image 	= null;
+	public static Display			display = null;
+
+	
 	
 	/**
 	 * Start of execution. Instantiates all the rendering threads.
 	 * 
-	 * @param args flags for runtime
+	 * @param args runtime flags
 	 */
 	public static void main(String[] args) {
 
+		image = new FastBufferedImage(480, 360);
+		image.fillGrayChecker(80, 0xF0, 0xA0);
+
+		//display = new Display(image);
+
 		/* parse the runtime arguments */
 		for (String arg : args) {
-			parse:
 			switch (arg) {
+
 				case "-m":
-				case "-M":
-				case "Multithread":
-				case "multithread":
+					System.out.println("Multithreaded");
 					MULTITHREADED = true;
-					break parse;
-				case "-a":
-					ANTIALIASED = true;
+					RenderThread.THREAD_WIDTH = 100;
+					RenderThread.THREAD_HEIGHT = 100;
+					break;
+
+				case "-a2":
+					System.out.println("2X antialiasing");
 					ANTIALIASING = 2;
 					break;
+
+				case "-a4":
+					System.out.println("4X antialiasing");
+					ANTIALIASING = 4;
+					break;
+
+				case "-a8":
+					System.out.println("8X antialiasing");
+					ANTIALIASING = 8;
+					break;
+				
+				case "-o":
+					System.out.println("File output");
+					SAVE_AS_FILE = true;
+					break;
+
+				case "-d":
+					System.out.println("Realtime Display");
+					break;
+
+				case "-hd":
+					System.out.println("1080p");
+					WIDTH = 1920;
+					HEIGHT = 1080;
+					break;
+				
+				case "-4k":
+					System.out.println("3840p");
+					WIDTH = 3840;
+					HEIGHT = 2160;
+					break;
+					
 				default:
-					break parse;
+					break;
 			}
 		}
 
+		if (!MULTITHREADED) {
+			RenderThread.THREAD_WIDTH = WIDTH;
+			RenderThread.THREAD_HEIGHT = HEIGHT;
+		}
+
+		ASPECT_RATIO = (double)WIDTH / (double)HEIGHT;
+		INV_ASPECT_RATIO = 1.0 / ASPECT_RATIO;
+
+		DISPLAY = new Display(WIDTH, HEIGHT);
+
 		long start = System.currentTimeMillis();
 
-		/* Create a 'scene' to add all the meshes to */
-		LinkedList<Mesh> scene = new LinkedList<Mesh>();
-
 		/* Add all the meshes to the scene */
-		for (Mesh mesh : OBJReader.read("obj/bunny.obj")) {
+		for (Mesh mesh : OBJReader.read("obj/room.obj")) {
 			mesh.buildBVH();
-			scene.add(mesh);
+			SCENE.meshes.add(mesh);
 		}
 
 		System.out.println("Mesh building time: " + (System.currentTimeMillis() - start));
-
 
 		/**
 		 * This loop will compute all of the rays, one for each pixel. It makes each
@@ -88,39 +140,21 @@ public class Main {
 		 */
 
 		start = System.currentTimeMillis();
-
-		Vector3[] rays;
-		if (ANTIALIASED) {
-			rays = new Vector3[WIDTH * HEIGHT * ANTIALIASING * ANTIALIASING];
-
-			for (int y = 0; y < HEIGHT * ANTIALIASING; y++) {
-				for (int x = 0; x < WIDTH * ANTIALIASING; x++) {
-					Vector3 ray = new Vector3(
-						1.0,
-						1.0 - 2.0 * x / ((double)WIDTH * ANTIALIASING),
-						INV_ASPECT_RATIO - 2.0 * INV_ASPECT_RATIO * y / ((double)HEIGHT * ANTIALIASING)
-					);
-					ray = Vector3.rotate(ray, J_HAT, CAMERA_PHI);
-					ray = Vector3.rotate(ray, K_HAT, CAMERA_THETA);
-					rays[x + y * WIDTH * ANTIALIASING] = ray.norm();
-				}
+		
+		RAYS = new Vector3[WIDTH * ANTIALIASING * HEIGHT * ANTIALIASING];
+		for (int y = 0; y < HEIGHT * ANTIALIASING; y++) {
+			for (int x = 0; x < WIDTH * ANTIALIASING; x++) {
+				Vector3 ray = new Vector3(
+					1.0,
+					1.0 - 2.0 * x / ((double)WIDTH * ANTIALIASING),
+					INV_ASPECT_RATIO - 2.0 * INV_ASPECT_RATIO * y / ((double)HEIGHT * ANTIALIASING)
+				);
+				ray = Vector3.rotate(ray, Vector3.J_HAT, CAMERA_PHI);
+				ray = Vector3.rotate(ray, Vector3.K_HAT, CAMERA_THETA);
+				RAYS[x + y * WIDTH * ANTIALIASING] = ray.norm();
 			}
 		}
-		else {
-			rays = new Vector3[WIDTH * HEIGHT];
-			for (int y = 0; y < HEIGHT; y++) {
-				for (int x = 0; x < WIDTH; x++) {
-					Vector3 ray = new Vector3(
-						1.0,
-						1.0 - 2.0 * x / (double)WIDTH,
-						INV_ASPECT_RATIO - 2.0 * INV_ASPECT_RATIO * y / (double)HEIGHT
-					);
-					ray = Vector3.rotate(ray, J_HAT, CAMERA_PHI);
-					ray = Vector3.rotate(ray, K_HAT, CAMERA_THETA);
-					rays[x + y * WIDTH] = ray.norm();
-				}
-			}
-		}
+		
 
 		System.out.println("Ray creation time: " + (System.currentTimeMillis() - start));
 
@@ -135,7 +169,7 @@ public class Main {
 			int nativeThreads = Thread.activeCount();
 			int cores = Runtime.getRuntime().availableProcessors();
 			int createdThreads = 0;
-			int neededThreads = (int)Math.ceil((double)WIDTH/ THREAD_WIDTH) * (int)Math.ceil((double)HEIGHT / THREAD_HEIGHT);
+			int neededThreads = (int)Math.ceil((double)WIDTH/ RenderThread.THREAD_WIDTH) * (int)Math.ceil((double)HEIGHT / RenderThread.THREAD_HEIGHT);
 			int x = 0;
 			int y = 0;
 			
@@ -143,24 +177,47 @@ public class Main {
 
 				for (int i = Thread.activeCount(); i < cores + nativeThreads; i++) {
 
-					new RenderThread(x, y, scene, rays).start();
+					new RenderThread(x, y).start();
 
-					x += THREAD_WIDTH;
+					x += RenderThread.THREAD_WIDTH;
 
 					if (x > WIDTH) {
 						x = 0;
-						y += THREAD_HEIGHT;
+						y += RenderThread.THREAD_HEIGHT;
 					}
 
 					createdThreads++;
 				}
 
 			}
+
+			while (RenderThread.DEAD_THREADS < neededThreads) {
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+
+			
 			
 		} else {
-			new RenderThread(0, 0, scene, rays).start();
+			new RenderThread(0, 0).start();
 		} 
 
+		
 		System.out.println("Render time: " + (System.currentTimeMillis() - start));
+
+		if (SAVE_AS_FILE) {
+			File outputfile = new File("img/" + System.currentTimeMillis() + ".png");
+			try {
+				ImageIO.write(DISPLAY.image, "png", outputfile);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
 	}
 }

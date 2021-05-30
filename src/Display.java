@@ -1,3 +1,9 @@
+/*
+ * Display.java
+ * 
+ * 29 May 2021
+ */
+
 import java.awt.*;
 import java.awt.image.*;
 import javax.swing.*;
@@ -13,7 +19,7 @@ import java.awt.event.*;
 class Display {
 
 	private final JFrame 		frame;
-	private final BufferedImage image;
+	public final BufferedImage image;
 	private final DataBuffer 	data;
 	private final JPanel 		panel;
 	private final KeyListener 	keyListener;

@@ -1,6 +1,6 @@
 /**
  * Class for use with Vector3 to build 3d models that can
- *  be displayed with path tracing.
+ * be displayed with path tracing.
  * @see Vector3
  */
 class Triangle {
@@ -40,8 +40,8 @@ class Triangle {
         Vector3 h = rayVector.cross(edge2);
         double a = edge1.dot(h);
 
-        if (-epsilon < a && a < epsilon)
-            return -1;    
+        //if (-epsilon < a && a < epsilon)
+        //    return -1;    
 
         double f = 1f / a;
         Vector3 s = rayOrigin.sub(this.a);
@@ -57,9 +57,10 @@ class Triangle {
         double t = f * edge2.dot(q);
         if (epsilon < t) {
             return t;
-        } else {
-            return -1;
         }
+
+        return -1;
+        
         
     }
 

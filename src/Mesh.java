@@ -14,6 +14,7 @@ class Mesh {
     public ArrayList<Vector3> verticies;
     public ArrayList<Triangle> triangles;
 
+
     /**
      * Creates a new mesh with no 3d data
      */
