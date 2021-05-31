@@ -1,4 +1,6 @@
 @ECHO OFF
+TITLE Path Tracer
+COLOR 0C
 
 :: Runtime flags:
 :: -m <int>     enable multithreading

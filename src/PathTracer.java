@@ -224,7 +224,7 @@ public class PathTracer {
 			System.exit(1);
 		}
 
-		scene.meshes.add(OBJReader.read("obj/room.obj"));
+		scene.meshes.add(OBJReader.read("obj/helicopter.obj"));
 
 
 		if (multithreaded) {
@@ -240,7 +240,4 @@ public class PathTracer {
 
 	}
 
-	
-
-	
 }
