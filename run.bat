@@ -1,14 +1,11 @@
 @ECHO OFF
 
 :: Runtime flags:
-:: -m     enable multithreading
-:: -a2    enable 2x antialiasing
-:: -a4    enable 4x antialiasing
-:: -a8    enable 8x antialiasing
-:: -o     enable image file output
-:: -d     enable realtime image Display
-:: -hd    set resolution to 1080p
-:: -4k    set resolution to 3840p
+:: -m <int>     enable multithreading
+:: -a <int=1>   set the antialiasing
+:: -o           enable image file output
+:: -d           enable realtime image Display
+SET args= 1920 1080 -v -d -m 100
 
 :: Set the location for the *.class files
 SET bin=bin
@@ -25,14 +22,10 @@ javac -d %bin% %src%\*.java
 
 :: Check if the *.java files were compiled successfully
 IF %ERRORLEVEL%==1 (
-
     PAUSE
-
 ) ELSE (
-
     :: Run the latest compiled *.class files found in bin
-    java -cp %bin% Main %1 %2 %3 %4 %5 %6 %7 %8 %9
-
+    java -cp %bin% PathTracer %args%
 )
 
 

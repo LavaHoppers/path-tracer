@@ -1,8 +1,16 @@
+/*
+ * Vector3.java
+ * 
+ * 30 May 2021
+ * 
+ */
+
 /**
  * Class for computing 3D vector math
  * <p>
  * Uses double floating point values and is mutable.
  * 
+ * @version 1.0.1
  * @author <a href=https://github.com/lavahoppers>Joshua Hopwood</a>
  */
 class Vector3 {

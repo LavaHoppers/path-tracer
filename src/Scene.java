@@ -1,16 +1,46 @@
+/*
+ * Scene.java
+ * 
+ * 30 May 2021
+ */
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 
+/**
+ * Class for containing all the 3D elements of a scene
+ * <p>
+ * There should be one of these per render and all the objects, lights, and
+ * materials should be added to it
+ * 
+ * @version 1.0.1
+ * @author <a href=https://github.com/lavahoppers>Joshua Hopwood</a>
+ */
 public class Scene {
     
     public ArrayList<Mesh> meshes;
-    public ArrayList<Light> lights;
 
+    /**
+     * Create a new scene
+     */
     Scene() {
         meshes = new ArrayList<Mesh>();
-        lights = new ArrayList<Light>();
     }
 
+    /**
+     * Determine if a ray intersects with elements of the scene
+     * <p>
+     * This funciton is the core of path tracing and improving it's speed will
+     * significantly improve render time
+     * 
+     * @param origin  the origin point of the ray
+     * @param ray     the ray normalized
+     * @param ptOut   the Vector3 to be overriden to the point of intersection
+     * @param normOut the Vector3 to be overridden to the normal of the intersection
+     * @param rgbOut  the RGB value out
+     * @return the distance from the origin to the point of intersection, -1 if no
+     *         intersection
+     */
     public boolean intersect(Vector3 origin, Vector3 ray, Vector3 ptOut, Vector3 normOut, Vector3 rgbOut) {
 
         Triangle closeTri = null;
@@ -21,7 +51,7 @@ public class Scene {
 
         for (Mesh mesh : meshes) {
 
-            AABBQueue.add(mesh.root);
+            AABBQueue.add(mesh.getRoot());
 
             while (0 < AABBQueue.size()) {
 
@@ -33,16 +63,16 @@ public class Scene {
                     continue;
 
                 if (closeTri == null || distance < closeDist) {
-                    if (current.leftChild != null)
-                        AABBQueue.add(current.leftChild);
-                    if (current.rightChild != null)
-                        AABBQueue.add(current.rightChild);
+                    if (current.getLeftChild() != null)
+                        AABBQueue.add(current.getLeftChild());
+                    if (current.getRightChild() != null)
+                        AABBQueue.add(current.getRightChild());
                 }
 
-                if (current.leaves == null)
+                if (!current.isLeafNode())
                     continue;
 
-                for (Triangle tri : current.leaves) {
+                for (Triangle tri : current.getLeaves()) {
 
                     distance = tri.intersects(origin, ray);
 

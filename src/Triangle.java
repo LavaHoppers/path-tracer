@@ -1,7 +1,16 @@
+/*
+ * Triangle.java
+ * 
+ * 30 May 2021
+ * 
+ */
+
 /**
  * Class for use with Vector3 to build 3d models that can
  * be displayed with path tracing.
- * @see Vector3
+ * 
+ * @version 1.0.1
+ * @author <a href=https://github.com/lavahoppers>Joshua Hopwood</a>
  */
 class Triangle {
 

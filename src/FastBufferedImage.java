@@ -13,28 +13,28 @@ import javax.imageio.ImageIO;
 
 /**
  * Class for writing to a {@code BufferedImage} quickly.
+ * <p>
+ * This class extends the {@code BufferedImage} class.
  * 
- * @version 1.0.0
+ * @version 1.0.1
  * @author <a href=https://github.com/lavahoppers>Joshua Hopwood</a>
  */
 public class FastBufferedImage extends BufferedImage {
 
     private DataBuffer data;
 
-    public final int WIDTH;
-    public final int HEIGHT;
-
     /**
      * Create a {@code FastBufferedImage} with dimensions width and height in
      * pixels.
+     * <p>
+     * The {@code FastBufferedImage} class <b>ONLY</b> supports RGB images
+     * because I said so!
      * 
      * @param width  the width of the image in pixels
      * @param height the height of the image in pixels
      */
     public FastBufferedImage(int width, int height) {
         super(width, height, BufferedImage.TYPE_INT_RGB);
-        this.WIDTH = width;
-        this.HEIGHT = height;
         data = this.getRaster().getDataBuffer();
     }
 
@@ -53,7 +53,7 @@ public class FastBufferedImage extends BufferedImage {
      * @param b the blue value of the pixel
      */
     public void setPixel(int x, int y, int r, int g, int b) {
-        data.setElem(x + y * WIDTH, r << 16 | g << 8 | b);
+        data.setElem(x + y * getWidth(), r << 16 | g << 8 | b);
     }
 
     /**
@@ -66,16 +66,16 @@ public class FastBufferedImage extends BufferedImage {
      * @param b the blue value
      */
     public void fill(int r, int g, int b) {
-        for (int y = 0; y < HEIGHT; y++)
-            for (int x = 0; x < WIDTH; x++)
+        for (int y = 0; y < getHeight(); y++)
+            for (int x = 0; x < getWidth(); x++)
                 setPixel(x, y, r, g, b);
     }
 
     /**
      * Fills the caller with a gray checkered pattern.
      * <p>
-     * The two shades should be specified as integers 0 to 0xFF that represent the
-     * R, G, and B components of two RGB values.
+     * The two shades should be specified as integers 0 to 0xFF that represent
+     * the R, G, and B components of two RGB values.
      * 
      * @param dim    the dimensions of the checker pattern
      * @param shade1 the intensity of the first shade
@@ -83,8 +83,8 @@ public class FastBufferedImage extends BufferedImage {
      */
     public void fillGrayChecker(int dim, int shade1, int shade2) {
         int b = dim / 2;
-        for (int y = 0; y < HEIGHT; y++)
-            for (int x = 0; x < WIDTH; x++) {
+        for (int y = 0; y < getHeight(); y++)
+            for (int x = 0; x < getWidth(); x++) {
                 int xp = x % dim;
                 int yp = y % dim;
                 if (xp < b && yp < b || b < xp && b < yp)
@@ -97,10 +97,10 @@ public class FastBufferedImage extends BufferedImage {
     /**
      * Save the caller as a PNG in a directory.
      * 
-     * @param path the directory to save the file into. The path should not include
-     *             the trailing seperator.
+     * @param path the directory to save the file into. The path should
+     *             <b>NOT</b> include the trailing seperator.
      * @param name the name of the file
-     * @return true if the image was saved succesfully, false otherwise.
+     * @return {@code true} if the image was saved succesfully, false otherwise.
      */
     public boolean savePNG(String path, String name) {
         File outputfile = new File(path + File.separator + name + ".png");
