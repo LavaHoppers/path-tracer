@@ -316,7 +316,8 @@ class Vector3 {
      * @return a vector orthoganal to both the caller and a vector
      */
     public Vector3 cross(Vector3 a) {
-        return new Vector3(this.y * a.z - this.z * a.y, this.z * a.x - this.x * a.z, this.x * a.y - this.y * a.x);
+        return new Vector3(this.y * a.z - this.z * a.y, this.z * a.x 
+                - this.x * a.z, this.x * a.y - this.y * a.x);
     }
 
     /**

@@ -193,7 +193,7 @@ public class PathTracer {
 	}
 
 	/**
-	 * Print this string if the verbose flag is toggled
+	 * Print this string if the verbose flag is true
 	 * 
 	 * @param text the text to be printed
 	 */
