@@ -1,14 +1,11 @@
 ![Teapot and Bunny](example.png)
 
 # Overview
-This path tracer is a hobby project used to experiment with the math used by commercial path tracers. I didn't want this project to be complex or hard to implement, so the entire thing is written in plain Java with minimal imports. However, that doesn't mean it's slow!
+This path tracer is a project used to experiment with the math used by commercial path tracers. I wanted this project to be easy to understand, so it is written in plain Java with minimal imports. 
 
-# What it can do
-This path tracer runs on the CPU and can take advantage of multi threading to accelerate render time. All of the meshes have bounding volume hierarchies to further decrease render time. So far, this path tracer can render `.obj` files, but I may add support for more file types in the future.
+# Features and 
 
-This path tracer supports any resolution, and can display the image as it's rendering.
-
-# Run it yourself
+# Run it yourself 
 This project is light-weight so running it yourself is easy. The entire thing is compiled and run through a small batch script. Using batch does limit users to Windows, but that's the price we pay for ease of use.
 
  - Install JDK on Windows
@@ -29,9 +26,42 @@ The full list of rendering setting are as follows:
 | flag | desc |
 |---|---|
 | **-m int** | Enable multithreading and set pixel dimensions of the chunks |
-| **-a int** | Set the sub-pixel sampling (antialiasing) resolution. Supplying an argument of `2`, for example will sample the pixel `2*2=4` times in a grid-like fashion. |
+| **-a int** | Set the sub-pixel sampling (antialiasing) resolution. For example, Supplying an argument of `2` will sample the pixel `2*2=4` times in a grid-like fashion. |
 | **-o** | Enable `.png` file output on completion |
-| **-d** | Enable realtime image Display |
+| **-d** | Enable realtime image display |
 | **-v** | Verbose console output |
+
+Make sure to also create the directories in `run.bat`.
+
+```bat
+:: run.bat
+:: Set the location for the *.class files
+SET bin=bin
+
+:: The dir containing the *.java files
+SET src=src
+```
+The last step is providing your own `.obj` files and configuring `src/path-tracer.java` to load them. 
+
+No `.obj`s on hand? No problem. Here is a list of the standard free ones:
+
+ - [Stanford Bunny](https://graphics.stanford.edu/~mdfisher/Data/Meshes/bunny.obj)
+ - [Utah Teapot](https://graphics.stanford.edu/courses/cs148-10-summer/as3/code/as3/teapot.obj)
+
+You can easily configure `src/path-tracer.java` to load your object files by doing something like this:
+
+```java
+//src/path-tracer.java
+public static void main(String[] args) {
+
+    /* parser code ... */
+
+    scene.meshes.add(OBJReader.read("obj/teapot.obj"));
+	scene.meshes.add(OBJReader.read("obj/bunny.obj"));
+
+    /* redering code ... */
+
+}
+```
 
 
