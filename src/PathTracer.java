@@ -71,20 +71,23 @@ public class PathTracer {
 	 */
 	public static boolean parseArgs(String[] args) {
 
-		if (args == null || args.length < 2)
+		// check if args are supplied
+		if (args == null || args.length < 2) {
+			System.out.println("Error: not enough args supplied");
+			System.out.println("Usage: args=<width> <height>");
 			return false;
+		}
 
+		// get the resolution 
 		try {
-
 			int width = Integer.parseInt(args[0]);
 			int height = Integer.parseInt(args[1]);
 			assert 0 < width;
 			assert 0 < height;
 			image = new FastBufferedImage(width, height);
-			image.fillGrayChecker(200, 0xAF, 0xC0);
-
+			image.fillGrayChecker(50, 0xAF, 0xC0);
 		} catch (Exception e) {
-			System.out.println("Usage: PathTracer <width> <height>");
+			System.out.println("Usage: args=<width> <height>");
 			return false;
 		}	
 
@@ -101,7 +104,7 @@ public class PathTracer {
 					multithreadDimension = d;
 				} 
 				catch (Exception e) {
-					System.out.println("Usage: -m <sub_space_dim>");
+					System.out.println("Usage: -m <multithreadDimension>");
 					return false;
 				}
 
@@ -113,7 +116,7 @@ public class PathTracer {
 					subPixelSamples = a;
 				} 
 				catch (Exception e) {
-					System.out.println("Usage: -a <antialiasing_count>");
+					System.out.println("Usage: -a <subPixelSamples>");
 					return false;
 				}
 			}
@@ -123,9 +126,9 @@ public class PathTracer {
 			}
 
 			else if (args[i].equals("-d")) {
-				vPrint("Creating Display");
+				vPrint("Creating Display...");
 				display = new Display("Path Tracer", image);
-				vPrint("Display created");
+				vPrint("Display created...");
 			}
 
 		}
@@ -133,7 +136,6 @@ public class PathTracer {
 		return true;
 	}
 
-	final static Vector3 SUN_LIGHT_DIR = new Vector3(1, 1, -1).norm();
 
 	/**
      * Render a single pixel on the image
@@ -143,29 +145,24 @@ public class PathTracer {
      */
     public static void renderPixel(int x, int y) {
 
-        int r = 0;
-        int g = 0;
-        int b = 0;
-
+        Vector3 pixelRGB = new Vector3();
 
         for (int j = 0; j < subPixelSamples; j++) 
             for (int i = 0; i < subPixelSamples; i++) {
 
-                Vector3 ray = getCameraRay(x, y, i, j);
-                Vector3 pt = new Vector3();
-                Vector3 norm = new Vector3();
-				Vector3 rgb = new Vector3();
+                Vector3 cameraRay = getCameraRay(x, y, i, j);
+                Vector3 intersectPoint = new Vector3();
+                Vector3 surfaceNormal = new Vector3();
+				Vector3 returnedRGB = new Vector3();
 
 				//**
-				if (scene.intersect(cameraLocation, ray, pt, norm, rgb)) {
-					double dot = ray.dot(norm) > 0 ? ray.dot(norm) : -ray.dot(norm);
-					r += (int)(dot * rgb.getX());
-					g += (int)(dot * rgb.getY());
-					b += (int)(dot * rgb.getZ());
+				if (scene.intersect(cameraLocation, cameraRay, intersectPoint, 
+						surfaceNormal, returnedRGB)) {
+					double surfaceAngle = cameraRay.dot(surfaceNormal);
+					surfaceAngle = 0 < surfaceAngle ? surfaceAngle : -surfaceAngle;
+					pixelRGB.setAdd(returnedRGB.scale(surfaceAngle));
 				} else {
-					r += (int)(rgb.getX());
-					g += (int)(rgb.getY());
-					b += (int)(rgb.getZ());
+					pixelRGB.setAdd(returnedRGB);
 				}
 				//*/
 				
@@ -238,12 +235,10 @@ public class PathTracer {
 
 				//TODO THIS SECTION
             }
-        
-		float correction = 1f / (subPixelSamples * subPixelSamples);
-        r = (int)(r * correction);
-        g = (int)(g * correction);
-        b = (int)(b * correction);
-        image.setPixel(x, y, r, g, b);
+
+        pixelRGB.setScale(1f / (subPixelSamples * subPixelSamples));
+        image.setPixel(x, y, (int)(pixelRGB.getX()), (int)(pixelRGB.getY()), 
+				(int)(pixelRGB.getZ()));
 		if (display != null)
 			display.repaint();
     }

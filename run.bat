@@ -1,6 +1,5 @@
 @ECHO OFF
 TITLE Path Tracer
-COLOR 0C
 
 SET args=720 480 -v -m 50 -d
 
