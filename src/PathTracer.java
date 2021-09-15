@@ -1,3 +1,5 @@
+import java.util.Random;
+
 /*
  * PathTracer.java
  * 
@@ -10,28 +12,28 @@
  * This class is meant for containing the important constants and functions
  * directly responsible for pathtracing.
  * 
- * @version 1.0.0
+ * @version 0.0.1
  * @author <a href=https://github.com/lavahoppers>Joshua Hopwood</a>
  */
 public class PathTracer {
 
-	public static boolean verbose 	    = false;
-	public static boolean save_as_file  = false;
-	public static boolean multithreaded = false;
-	public static int 	  threadDim	    = 0;
-	public static int 	  antialiasing  = 1;
+	private static boolean isVerboseConsole = false;
+	private static boolean isSaveToFile = false;
+	private static boolean isMultithreadRender = false;
+	public static int multithreadDimension = 0;
+	public static int subPixelSamples = 1;
  
-	public static FastBufferedImage image   = null;
-	public static Display			display = null;
-	public static Scene				scene   = new Scene();
+	public static FastBufferedImage image = null;
+	public static Display display = null;
+	public static Scene	scene = new Scene();
  
-	public static Vector3 camera  	   = new Vector3(0, 5, 2);
-	public static double  camera_theta = -Math.PI * 0.5;
-	public static double  camera_phi   = Math.PI * 0.0;
-//	public static Matrix  camera_rot   = null;
+	public static Vector3 cameraLocation = new Vector3(-5, 1, 0);
+	public static double cameraTheta = Math.PI * 0;
+	public static double cameraPhi = Math.PI * 0;
+	public static Matrix cameraRotationMatrix = null;
 	
 	/**
-	 * Returns a normalized camera ray for the pixel x, y
+	 * Returns a normalized camera ray for a pixel
 	 * 
 	 * @param x the pixel's x position
 	 * @param y the pixel's y position
@@ -41,25 +43,24 @@ public class PathTracer {
 	 */
 	public static Vector3 getCameraRay(int x, int y, int i, int j) {
 
-		double xp = x * antialiasing + i;
-		double yp = y * antialiasing + j;
+		double xp = x * subPixelSamples + i;
+		double yp = y * subPixelSamples + j;
 
 		double inv = (double)image.getHeight() / image.getWidth();
 
 		Vector3 ray = new Vector3(
 			1.0,
-			1.0 - (2.0 		) * xp / (image.getWidth() * antialiasing),
-			inv - (2.0 * inv) * yp / (image.getHeight() * antialiasing)
+			inv - (2.0 * inv) * yp / (image.getHeight() * subPixelSamples),
+			1.0 - (2.0 		) * xp / (image.getWidth() * subPixelSamples)
 		);
 
-		ray = Vector3.rotate(ray, Vector3.J_HAT, camera_phi);
-		ray = Vector3.rotate(ray, Vector3.K_HAT, camera_theta);
+		// TODO replace with a fast rotation matrix
 
 		return ray.norm();
 	}
 
 	/**
-	 * Parse the runtime arguments and setup the PathTracer
+	 * Parse the runtime arguments and setup the engine
 	 * <p>
 	 * This function is very strict and will not hesitate to throw you an error
 	 * if the supplied arguments are in the wrong format! Handle with care...
@@ -90,14 +91,14 @@ public class PathTracer {
 		for (int i = 0; i < args.length; i++) {
 
 			if (args[i].equals("-v")) {
-				verbose = true;
+				isVerboseConsole = true;
 			}
 
 			if (args[i].equals("-m")) {
-				multithreaded = true;
+				isMultithreadRender = true;
 				try {
 					int d = Integer.parseInt(args[i + 1]);
-					threadDim = d;
+					multithreadDimension = d;
 				} 
 				catch (Exception e) {
 					System.out.println("Usage: -m <sub_space_dim>");
@@ -109,7 +110,7 @@ public class PathTracer {
 			else if (args[i].equals("-a")) {
 				try {
 					int a = Integer.parseInt(args[i + 1]);
-					antialiasing = a;
+					subPixelSamples = a;
 				} 
 				catch (Exception e) {
 					System.out.println("Usage: -a <antialiasing_count>");
@@ -118,7 +119,7 @@ public class PathTracer {
 			}
 
 			else if (args[i].equals("-o")) {
-				save_as_file = true;
+				isSaveToFile = true;
 			}
 
 			else if (args[i].equals("-d")) {
@@ -132,6 +133,8 @@ public class PathTracer {
 		return true;
 	}
 
+	final static Vector3 SUN_LIGHT_DIR = new Vector3(1, 1, -1).norm();
+
 	/**
      * Render a single pixel on the image
 	 * 
@@ -140,24 +143,109 @@ public class PathTracer {
      */
     public static void renderPixel(int x, int y) {
 
-        int c = 0;
+        int r = 0;
+        int g = 0;
+        int b = 0;
 
-        for (int j = 0; j < antialiasing; j++) 
-            for (int i = 0; i < antialiasing; i++) {
+
+        for (int j = 0; j < subPixelSamples; j++) 
+            for (int i = 0; i < subPixelSamples; i++) {
 
                 Vector3 ray = getCameraRay(x, y, i, j);
                 Vector3 pt = new Vector3();
                 Vector3 norm = new Vector3();
+				Vector3 rgb = new Vector3();
 
-                if (scene.intersect(camera, ray, pt, norm, null))  {
-                    double dot = ray.dot(norm) > 0 ? ray.dot(norm) : -ray.dot(norm);
-                    c += (int)(dot * 0xFF);
-                }
+				//**
+				if (scene.intersect(cameraLocation, ray, pt, norm, rgb)) {
+					double dot = ray.dot(norm) > 0 ? ray.dot(norm) : -ray.dot(norm);
+					r += (int)(dot * rgb.getX());
+					g += (int)(dot * rgb.getY());
+					b += (int)(dot * rgb.getZ());
+				} else {
+					r += (int)(rgb.getX());
+					g += (int)(rgb.getY());
+					b += (int)(rgb.getZ());
+				}
+				//*/
+				
+
+				// TODO THIS SECTION
+				/**
+				if (scene.intersect(cameraLocation, ray, pt, norm, rgb)) {
+					Random rand = new Random();
+
+					double xcon = ((rand.nextDouble() * 2.0) - 1.0) * (0.5);
+					double zcon = ((rand.nextDouble() * 2.0) - 1.0) * (0.5);
+					Vector3 sunDir = new Vector3(xcon, -1, zcon).norm();
+
+					if (scene.intersect(pt, sunDir, null, null, null)) {
+
+					} else {
+						double dot = sunDir.dot(norm) > 0 ? 
+						sunDir.dot(norm) : -sunDir.dot(norm);
+					r += (int)(dot * rgb.getX());
+					g += (int)(dot * rgb.getY());
+					b += (int)(dot * rgb.getZ());
+						
+					}
+					
+
+					// SECOND BOUNCE
+					
+					double angle1 = ((rand.nextDouble() * 2.0) - 1.0) * (3.14159 / 2.0);
+					double angle2 = ((rand.nextDouble() * 2.0) - 1.0) * (3.14159 / 2.0);
+
+					Vector3 axis1 = norm.cross(new Vector3(1, 0, 0)); 
+					Vector3 axis2 = norm.cross(axis1); 
+
+					Vector3 bounce = Vector3.rotate(norm.copy(), axis1, angle1);
+					bounce = Vector3.rotate(bounce, axis2, angle2);
+
+					Vector3 ptB  = new Vector3();
+					Vector3 normB  = new Vector3();
+					Vector3 rgbB  = new Vector3();
+
+					if (scene.intersect(pt, bounce, ptB, normB, rgbB)) {
+
+						
+
+						if (scene.intersect(ptB, sunDir, null, null, null)) {
+
+						} else {
+							double dotB = sunDir.dot(normB) > 0 ? 
+							sunDir.dot(normB) : -sunDir.dot(normB);
+							
+							double contribution_fac = 1.0 / (pt.sub(ptB).mag())
+									* (pt.sub(ptB).mag());
+
+							r += contribution_fac * (int)(dotB * rgbB.getX());
+							g += contribution_fac * (int)(dotB * rgbB.getY());
+							b += contribution_fac * (int)(dotB * rgbB.getZ());
+						}
+
+						
+					}
+					
+
+
+				} else {
+					r += (int)(rgb.getX());
+					g += (int)(rgb.getY());
+					b += (int)(rgb.getZ());
+				}
+				// */
+
+				//TODO THIS SECTION
             }
         
-        c = c / (antialiasing * antialiasing);
-        image.setPixel(x, y, c, c, c);
-		display.repaint();
+		float correction = 1f / (subPixelSamples * subPixelSamples);
+        r = (int)(r * correction);
+        g = (int)(g * correction);
+        b = (int)(b * correction);
+        image.setPixel(x, y, r, g, b);
+		if (display != null)
+			display.repaint();
     }
 
 	/**
@@ -167,22 +255,22 @@ public class PathTracer {
 	 */
 	public static RenderThread[] getRenderThreads() {
 
-		int neededThreads = (int)(Math.ceil((double)image.getWidth() / threadDim) * 
-								  Math.ceil((double)image.getHeight() / threadDim));
+		int neededThreads = (int)(Math.ceil((double)image.getWidth() / multithreadDimension) * 
+								  Math.ceil((double)image.getHeight() / multithreadDimension));
 
 		RenderThread[] threads = new RenderThread[neededThreads];
 		
 		int i = 0;
 
-		for (int y = 0; y < image.getHeight(); y += threadDim) {
-			for (int x = 0; x < image.getWidth(); x += threadDim) {
+		for (int y = 0; y < image.getHeight(); y += multithreadDimension) {
+			for (int x = 0; x < image.getWidth(); x += multithreadDimension) {
 
-				int width = image.getWidth() < x + threadDim ? // too large?
+				int width = image.getWidth() < x + multithreadDimension ? // too large?
 							image.getWidth() - x : // okay, resize
-							threadDim;
-				int height = image.getHeight() < y + threadDim ? 
+							multithreadDimension;
+				int height = image.getHeight() < y + multithreadDimension ? 
 							 image.getHeight() - y : 
-							 threadDim;
+							 multithreadDimension;
 
 				threads[i] = new RenderThread(x, y, width, height);
 				i++;
@@ -198,7 +286,7 @@ public class PathTracer {
 	 * @param text the text to be printed
 	 */
 	public static void vPrint(String text) {
-		if (verbose) System.out.println(text);
+		if (isVerboseConsole) System.out.println(text);
 	}
 
 	/**
@@ -224,10 +312,11 @@ public class PathTracer {
 			System.exit(1);
 		}
 
-		scene.meshes.add(OBJReader.read("obj/helicopter.obj"));
+		scene.meshes.add(OBJReader.read("obj/bunny.obj"));
+		scene.meshes.add(OBJReader.read("obj/plane.obj"));
 
 
-		if (multithreaded) {
+		if (isMultithreadRender) {
 			RenderThread[] threads = getRenderThreads();
 			for (int i = 0; i < threads.length;) 
 				if (RenderThread.running() < Runtime.getRuntime().availableProcessors()) 
@@ -238,6 +327,9 @@ public class PathTracer {
 
 		while(0 < RenderThread.running()) { sleep(); }
 
+		if (isSaveToFile)
+			image.savePNG("./img", "" + System.currentTimeMillis() + ".png");
+		System.out.print("Render Complete");
 	}
 
 }

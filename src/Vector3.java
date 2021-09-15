@@ -463,9 +463,36 @@ class Vector3 {
         double tz = cos * p.z + qx * p.y - qy * p.x;
 
         return new Vector3(
-            tw * qxp + tx * cos + ty * qzp - tz * qyp, tw * qyp - tx * qzp + ty * cos + tz * qxp,
+            tw * qxp + tx * cos + ty * qzp - tz * qyp, 
+            tw * qyp - tx * qzp + ty * cos + tz * qxp,
             tw * qzp + tx * qyp - ty * qxp + tz * cos);
 
+    }
+
+    /**
+     * A special case of multiplication where you are rotating a vector
+     * 
+     * @param a the vector to be rotated
+     * @return the vector, rotated
+     * @throws RuntimeException if the width and height of the caller
+     *         do not equal 3
+     * @since 1.0.1
+     */
+    public Vector3 setMult(Matrix a) throws RuntimeException {
+        
+        if (a.N != 3 || a.M != 3)
+            throw new RuntimeException();
+
+        this.set(
+            a.get(0, 0) * this.getX() + a.get(0, 1) * this.getY() + 
+            a.get(0, 2) * this.getZ(), 
+            a.get(1, 0) * this.getX() + a.get(1, 1) * this.getY() + 
+            a.get(1, 2) * this.getZ(), 
+            a.get(2, 0) * this.getX() + a.get(2, 1) * this.getY() + 
+            a.get(2, 2) * this.getZ()
+        );
+
+        return this;
     }
 
 }

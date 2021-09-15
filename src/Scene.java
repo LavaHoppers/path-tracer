@@ -90,11 +90,19 @@ public class Scene {
 
         }
 
-        if (closeTri == null)
+        if (closeTri == null) {
+            if (rgbOut != null)
+                rgbOut.set(135f, 206f, 235f);
             return false;
+            
+        }
+        if (ptOut != null)
+            ptOut.set(origin.copy().setScaleAdd(ray, closeDist));
+        if (normOut != null)
+            normOut.set(closeTri.norm());
+        if (rgbOut != null)
+            rgbOut.set(new Vector3(130, 130, 130));
         
-        ptOut.set(origin.copy().setScaleAdd(ray, closeDist));
-        normOut.set(closeTri.norm());
         return true;
 
     }

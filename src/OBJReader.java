@@ -53,8 +53,8 @@ public class OBJReader {
                 case "v": // verticies
                     try {
                         double x = Double.parseDouble(parsed[1]);
-                        double y = Double.parseDouble(parsed[3]);
-                        double z = Double.parseDouble(parsed[2]);
+                        double y = Double.parseDouble(parsed[2]);
+                        double z = Double.parseDouble(parsed[3]);
                         verticies.add(new Vector3(x, y, z));
                     } catch (Exception e) {
                         System.out.println("Failed to load vertex information for: " + line);

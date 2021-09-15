@@ -2,13 +2,7 @@
 TITLE Path Tracer
 COLOR 0C
 
-:: Runtime flags:
-:: -m <int>     enable multithreading and choose pixel dim of chunk
-:: -a <int=1>   set the antialiasing
-:: -o           enable image file output
-:: -d           enable realtime image Display
-:: -v           verbose console output
-SET args= 800 600 -v -d -m 100 -a 4
+SET args=720 480 -v -m 50 -d
 
 :: Set the location for the *.class files
 SET bin=bin
@@ -30,5 +24,3 @@ IF %ERRORLEVEL%==1 (
     :: Run the latest compiled *.class files found in bin
     java -cp %bin% PathTracer %args%
 )
-
-

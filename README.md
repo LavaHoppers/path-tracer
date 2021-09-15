@@ -48,17 +48,17 @@ SET bin=bin
 :: The dir containing the *.java files
 SET src=src
 ```
-The last step is providing your own `.obj` files and configuring `src/path-tracer.java` to load them. 
+The last step is providing your own `.obj` files and configuring `src/PathTracer.java` to load them. 
 
 No `.obj`s on hand? No problem. Here are the standard free ones:
 
  - [Stanford Bunny](https://graphics.stanford.edu/~mdfisher/Data/Meshes/bunny.obj)
  - [Utah Teapot](https://graphics.stanford.edu/courses/cs148-10-summer/as3/code/as3/teapot.obj)
 
-You can easily configure `src/path-tracer.java` to load your object files by doing something like this:
+You can easily configure `src/PathTracer.java` to load your object files by doing something like this:
 
 ```java
-//src/path-tracer.java
+//src/PathTracer.java
 public static void main(String[] args) {
 
     /* parser code ... */
@@ -70,5 +70,3 @@ public static void main(String[] args) {
 
 }
 ```
-
-
