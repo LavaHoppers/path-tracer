@@ -478,7 +478,7 @@ class Vector3 {
      *         do not equal 3
      * @since 1.0.1
      */
-    public Vector3 setMult(Matrix a) throws RuntimeException {
+    public Vector3 setMatrixRotation(Matrix a) throws RuntimeException {
         
         if (a.N != 3 || a.M != 3)
             throw new RuntimeException();

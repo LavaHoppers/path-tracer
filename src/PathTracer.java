@@ -26,11 +26,16 @@ public class PathTracer {
 	public static FastBufferedImage image = null;
 	public static Display display = null;
 	public static Scene	scene = new Scene();
- 
-	public static Vector3 cameraLocation = new Vector3(-5, 1, 0);
-	public static double cameraTheta = Math.PI * 0;
-	public static double cameraPhi = Math.PI * 0;
-	public static Matrix cameraRotationMatrix = null;
+	public static final Random RANDOM = new Random();
+
+	public static final Vector3 cameraLocation = new Vector3(-5, 1, 0);
+	public static final double cameraTheta = Math.PI * 0;
+	public static final double cameraPhi = Math.PI * 0;
+	public static final Matrix cameraPhiMatrix = 
+			Matrix.getZRotationMatrix(cameraPhi);
+	public static final Matrix cameraThetaMatrix = 
+			Matrix.getYRotationMatrix(cameraTheta);
+			
 	
 	/**
 	 * Returns a normalized camera ray for a pixel
@@ -54,7 +59,10 @@ public class PathTracer {
 			1.0 - (2.0 		) * xp / (image.getWidth() * subPixelSamples)
 		);
 
-		// TODO replace with a fast rotation matrix
+		if (cameraTheta != 0)
+			ray.setMatrixRotation(cameraPhiMatrix);
+		if (cameraPhi != 0)
+			ray.setMatrixRotation(cameraThetaMatrix);
 
 		return ray.norm();
 	}
@@ -146,6 +154,7 @@ public class PathTracer {
     public static void renderPixel(int x, int y) {
 
         Vector3 pixelRGB = new Vector3();
+		
 
         for (int j = 0; j < subPixelSamples; j++) 
             for (int i = 0; i < subPixelSamples; i++) {
@@ -155,7 +164,7 @@ public class PathTracer {
                 Vector3 surfaceNormal = new Vector3();
 				Vector3 returnedRGB = new Vector3();
 
-				//**
+				/**
 				if (scene.intersect(cameraLocation, cameraRay, intersectPoint, 
 						surfaceNormal, returnedRGB)) {
 					double surfaceAngle = cameraRay.dot(surfaceNormal);
@@ -168,72 +177,27 @@ public class PathTracer {
 				
 
 				// TODO THIS SECTION
-				/**
-				if (scene.intersect(cameraLocation, ray, pt, norm, rgb)) {
-					Random rand = new Random();
+				//**
+				if (scene.intersect(cameraLocation, cameraRay, intersectPoint, 
+						surfaceNormal, returnedRGB)) {
+					
 
-					double xcon = ((rand.nextDouble() * 2.0) - 1.0) * (0.5);
-					double zcon = ((rand.nextDouble() * 2.0) - 1.0) * (0.5);
-					Vector3 sunDir = new Vector3(xcon, -1, zcon).norm();
+					// TODO mess with the sunlight values here
+					
+					Vector3 sunRay = new Vector3((RANDOM.nextDouble() - 0.5), -1, 
+							(RANDOM.nextDouble() - 0.5)).norm();
 
-					if (scene.intersect(pt, sunDir, null, null, null)) {
-
-					} else {
-						double dot = sunDir.dot(norm) > 0 ? 
-						sunDir.dot(norm) : -sunDir.dot(norm);
-					r += (int)(dot * rgb.getX());
-					g += (int)(dot * rgb.getY());
-					b += (int)(dot * rgb.getZ());
-						
+					if (!scene.intersect(intersectPoint, sunRay.scale(-1), null, 
+							null, null)) {
+						pixelRGB.setAdd(returnedRGB);
 					}
 					
-
-					// SECOND BOUNCE
-					
-					double angle1 = ((rand.nextDouble() * 2.0) - 1.0) * (3.14159 / 2.0);
-					double angle2 = ((rand.nextDouble() * 2.0) - 1.0) * (3.14159 / 2.0);
-
-					Vector3 axis1 = norm.cross(new Vector3(1, 0, 0)); 
-					Vector3 axis2 = norm.cross(axis1); 
-
-					Vector3 bounce = Vector3.rotate(norm.copy(), axis1, angle1);
-					bounce = Vector3.rotate(bounce, axis2, angle2);
-
-					Vector3 ptB  = new Vector3();
-					Vector3 normB  = new Vector3();
-					Vector3 rgbB  = new Vector3();
-
-					if (scene.intersect(pt, bounce, ptB, normB, rgbB)) {
-
-						
-
-						if (scene.intersect(ptB, sunDir, null, null, null)) {
-
-						} else {
-							double dotB = sunDir.dot(normB) > 0 ? 
-							sunDir.dot(normB) : -sunDir.dot(normB);
-							
-							double contribution_fac = 1.0 / (pt.sub(ptB).mag())
-									* (pt.sub(ptB).mag());
-
-							r += contribution_fac * (int)(dotB * rgbB.getX());
-							g += contribution_fac * (int)(dotB * rgbB.getY());
-							b += contribution_fac * (int)(dotB * rgbB.getZ());
-						}
-
-						
-					}
-					
-
-
 				} else {
-					r += (int)(rgb.getX());
-					g += (int)(rgb.getY());
-					b += (int)(rgb.getZ());
+					pixelRGB.setAdd(returnedRGB);
 				}
 				// */
 
-				//TODO THIS SECTION
+				
             }
 
         pixelRGB.setScale(1f / (subPixelSamples * subPixelSamples));
@@ -323,7 +287,7 @@ public class PathTracer {
 		while(0 < RenderThread.running()) { sleep(); }
 
 		if (isSaveToFile)
-			image.savePNG("./img", "" + System.currentTimeMillis() + ".png");
+			image.savePNG("./img", System.currentTimeMillis() + ".png");
 		System.out.print("Render Complete");
 	}
 
