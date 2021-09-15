@@ -15,10 +15,23 @@ This project is light-weight so running it yourself is easy. The entire thing is
  - Clone this repository
  - Edit the `run.bat` file to change the render and directory settings
 
-For example, if I would like to render the image in 1080p with a real-time display I would set the rendering settings to the following:
+The render setting are specified by the `args` variable. For example, if I would like to render the image in 1080p with a real-time display I would have the following:
 
+#### **`run.bat`**
+```bat
+SET args=1920 1080 -v
 ```
-1920 1080 -v
-```
+
+The first two numbers specify the resolution, and `-v` tells the path-tracer to create the realtime display.
+
+The full list of rendering setting are as follows:
+
+| flag | args   | desc                                                  |
+|---   |---     |---                                                    |
+| -m   |<int>   |   enable multithreading and choose pixel dimensions of the chunks |
+| -a   |<int>   |   set the sub-pixel sampling (antialiasing) resolution\n\nSupplying an argument of `2`, for example will sample the pixel `2*2=4` times in a grid-like fashion. |
+| -o   |        |   enable `.png` file output on completion |
+| -d   |        |   enable realtime image Display |
+| -v   |        |   verbose console output|
 
 
