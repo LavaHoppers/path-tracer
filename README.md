@@ -5,9 +5,12 @@ This path tracer is a project used to experiment with the math used by commercia
 
 # Features
 **`Multithreading`**: The renderer can use any number of CPU cores to dramatically decrease the render time.
+
 **`Bounding Volume Hierarchies`**: Upon loading a 3D object into the engine, it will algorithmically subdivide it's mesh so the object can be rendered efficiently.
+
 **`Global Illumination`**: *WIP* Global illumination makes each object to act as a light source and allows for incredibly realistic lighting.
-**`Real-time Display`**: You can watch your image render as the engine works on it.
+
+**`Real-time Display`**: You can watch your image render as the engine works on it in addition to the `.png` output.
 
 # Run it yourself 
 This project is light-weight so running it yourself is easy. The entire thing is compiled and run through a small batch script. Using batch does limit users to Windows, but that's the price we pay for ease of use.
