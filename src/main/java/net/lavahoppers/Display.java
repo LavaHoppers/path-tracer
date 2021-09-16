@@ -1,3 +1,5 @@
+package net.lavahoppers;
+
 /*
  * Display.java
  * 
@@ -39,7 +41,7 @@ public class Display {
 	 * @param name the name of the window
 	 * @param image the image to be displayed in the window
 	 */
-    public Display(String name, FastBufferedImage image) {
+    public Display(String name, final FastBufferedImage image) {
 
 
 		/* Create the OS window that will be used to display the image */

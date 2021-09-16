@@ -1,10 +1,5 @@
+package net.lavahoppers;
 import java.util.Random;
-
-/*
- * PathTracer.java
- * 
- * 29 May 2021
- */
 
 /**
  * The main class for the PathTracer.

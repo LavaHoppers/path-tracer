@@ -1,3 +1,5 @@
+package net.lavahoppers;
+
 /*
  * AABB.java
  * 

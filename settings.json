@@ -1,0 +1,33 @@
+{
+
+    "render-resolution": [720, 480],
+    "save-render-to-png": true,
+    "png-output-location": "./img",
+    "realtime-display": true,
+
+    "camera-position": [0.0, 0.0, 0.0],
+    "camera-pitch": 0.0,
+    "camera-yaw": 0.0,
+
+    "antialiasing": true,
+    "antialiasing-multiplier": 1,
+
+    "multithreaded-render": true,
+    "verbose-console": false,
+
+    "global-illumination": true,
+    "global-illumination-bounces": 1,
+    "global-illumination-scatters": 1,
+    "inverse-square-law-constant": 3,
+
+    "scene" : [
+        {
+            "file": "./obj/bunny.obj"
+
+        }, {
+
+        }
+
+    ]
+
+}
