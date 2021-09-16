@@ -1,4 +1,4 @@
-![Teapot and Bunny](example.png)
+![Globaly Illuminated Dragon](example.png)
 
 # Overview
 This path tracer is a project used to experiment with the math used by commercial path tracers. I wanted this project to be easy to understand, so it is written in plain Java with minimal imports. 
@@ -8,7 +8,7 @@ This path tracer is a project used to experiment with the math used by commercia
 
 **`Bounding Volume Hierarchies`**: Upon loading a 3D object into the engine, it will algorithmically subdivide it's mesh so the object can be rendered efficiently.
 
-**`Global Illumination`**: *WIP* Global illumination makes each object to act as a light source and allows for incredibly realistic lighting.
+**`Global Illumination`**: Global illumination makes each object to act as a light source and allows for incredibly realistic lighting.
 
 **`Real-time Display`**: You can watch your image render as the engine works on it in addition to the `.png` output.
 
