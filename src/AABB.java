@@ -15,8 +15,8 @@ import java.util.LinkedList;
  */
 public class AABB {
 
-    private Vector3 max = null;
-    private Vector3 min = null;
+    public Vector3 max = null;
+    public Vector3 min = null;
 
     private AABB leftChild = null;
     private AABB rightChild = null;
@@ -227,6 +227,7 @@ public class AABB {
             }
 
         }
+
     }
 
 }

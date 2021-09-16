@@ -22,15 +22,20 @@ public class PathTracer {
 	private static boolean isMultithreadRender = false;
 	public static int multithreadDimension = 0;
 	public static int subPixelSamples = 1;
+
+	public static boolean isGlobalIllumination = false;
+	public static int globalIllumBounces = 1;
+	public static int globalIllumScatters = 1;
+	public static int globalIllumScalar = 1;
  
 	public static FastBufferedImage image = null;
 	public static Display display = null;
 	public static Scene	scene = new Scene();
 	public static final Random RANDOM = new Random();
 
-	public static final Vector3 cameraLocation = new Vector3(-5, 1, 0);
-	public static final double cameraTheta = Math.PI * 0;
-	public static final double cameraPhi = Math.PI * 0;
+	public static final Vector3 cameraLocation = new Vector3(-0.5, 7.8, 10);
+	public static final double cameraTheta = Math.PI * .5;
+	public static final double cameraPhi = Math.PI * -.1;
 	public static final Matrix cameraPhiMatrix = 
 			Matrix.getZRotationMatrix(cameraPhi);
 	public static final Matrix cameraThetaMatrix = 
@@ -59,10 +64,11 @@ public class PathTracer {
 			1.0 - (2.0 		) * xp / (image.getWidth() * subPixelSamples)
 		);
 
-		if (cameraTheta != 0)
-			ray.setMatrixRotation(cameraPhiMatrix);
 		if (cameraPhi != 0)
+			ray.setMatrixRotation(cameraPhiMatrix);
+		if (cameraTheta != 0)
 			ray.setMatrixRotation(cameraThetaMatrix);
+		
 
 		return ray.norm();
 	}
@@ -100,6 +106,19 @@ public class PathTracer {
 		}	
 
 		for (int i = 0; i < args.length; i++) {
+			
+			if (args[i].equals("-g")) {
+				isGlobalIllumination = true;
+				try {
+					globalIllumScatters = Integer.parseInt(args[i + 1]);
+					globalIllumBounces = Integer.parseInt(args[i + 2]);
+					globalIllumBounces = Integer.parseInt(args[i + 3]);
+				} 
+				catch (Exception e) {
+					System.out.println("Usage: -g <scatters> <bounces> <scalar>");
+					return false;
+				}
+			}
 
 			if (args[i].equals("-v")) {
 				isVerboseConsole = true;
@@ -164,34 +183,25 @@ public class PathTracer {
                 Vector3 surfaceNormal = new Vector3();
 				Vector3 returnedRGB = new Vector3();
 
-				/**
-				if (scene.intersect(cameraLocation, cameraRay, intersectPoint, 
-						surfaceNormal, returnedRGB)) {
-					double surfaceAngle = cameraRay.dot(surfaceNormal);
-					surfaceAngle = 0 < surfaceAngle ? surfaceAngle : -surfaceAngle;
-					pixelRGB.setAdd(returnedRGB.scale(surfaceAngle));
-				} else {
-					pixelRGB.setAdd(returnedRGB);
-				}
-				//*/
-				
-
-				// TODO THIS SECTION
 				//**
 				if (scene.intersect(cameraLocation, cameraRay, intersectPoint, 
 						surfaceNormal, returnedRGB)) {
-					
+				
+					Vector3 workingSunRay = getSunlightRay();
 
-					// TODO mess with the sunlight values here
-					
-					Vector3 sunRay = new Vector3((RANDOM.nextDouble() - 0.5), -1, 
-							(RANDOM.nextDouble() - 0.5)).norm();
-
-					if (!scene.intersect(intersectPoint, sunRay.scale(-1), null, 
-							null, null)) {
-						pixelRGB.setAdd(returnedRGB);
+					// direct illumination
+					if (!scene.intersect(intersectPoint, 
+							workingSunRay.scale(-1), null, null, null)) {
+						double lambert = surfaceNormal.dot(workingSunRay);
+						lambert = lambert < 0 ? -lambert : lambert;
+						pixelRGB.setAdd(returnedRGB.scale(lambert));
 					}
-					
+
+					// global illumination
+					if (isGlobalIllumination)
+						pixelRGB.setAdd(recursiveIllumination(0, intersectPoint, 
+						surfaceNormal));
+
 				} else {
 					pixelRGB.setAdd(returnedRGB);
 				}
@@ -200,12 +210,97 @@ public class PathTracer {
 				
             }
 
-        pixelRGB.setScale(1f / (subPixelSamples * subPixelSamples));
-        image.setPixel(x, y, (int)(pixelRGB.getX()), (int)(pixelRGB.getY()), 
-				(int)(pixelRGB.getZ()));
+        pixelRGB.setScale(1.0 / (subPixelSamples * subPixelSamples));
+        image.setPixel(x, y, 
+			(int)(pixelRGB.getX() > 255 ? 255 : pixelRGB.getX()), 
+			(int)(pixelRGB.getY() > 255 ? 255 : pixelRGB.getY()), 
+			(int)(pixelRGB.getZ() > 255 ? 255 : pixelRGB.getZ())); 
+
 		if (display != null)
 			display.repaint();
     }
+
+	/**
+	 * Gives a random sunlight ray
+	 * <p>
+	 * Randomizing the sulight rays a bit allows for soft shadows.
+	 * 
+	 * @return get a random sunlight ray
+	 */
+	public static Vector3 getSunlightRay() {
+		//**
+		return new Vector3((RANDOM.nextDouble() - 0.5) * .05, -1, 
+				(RANDOM.nextDouble() - 0.5) *.05).norm();
+		// */
+		/*
+		return new Vector3((RANDOM.nextDouble() - 0.5), (RANDOM.nextDouble() - 0.5), 
+				(RANDOM.nextDouble() - 0.5)).norm();
+		// */
+	}
+
+	/**
+	 * returns the light intensity of a certain ray based on its surroundings
+	 * 
+	 * @param bounceNumber the current bounce
+	 * @param surfacePoint the point looking to be illuminated
+	 * @param surfaceNormal the normal to the point
+	 * @return
+	 */
+	public static Vector3 recursiveIllumination(int bounceNumber, 
+		Vector3 surfacePoint, Vector3 surfaceNormal) {
+
+		if (globalIllumBounces <= bounceNumber)
+			return new Vector3(0x00, 0x00, 0x00);
+
+		Vector3 totalLightContribution = new Vector3();
+
+		for (int scatters = 0; scatters < globalIllumScatters; scatters++) {
+
+			double angle1 = RANDOM.nextDouble() * Math.PI / 2;
+			double angle2 = RANDOM.nextDouble() * Math.PI * 2;
+
+			Vector3 localXAxis = Vector3.I_HAT.cross(surfaceNormal);
+
+			Vector3 scatterRay = Vector3.rotate(surfaceNormal, localXAxis, 
+					angle1);
+			scatterRay =  Vector3.rotate(scatterRay, surfaceNormal, 
+					angle2);
+
+			Vector3 hitPoint = new Vector3();
+			Vector3 hitSurfaceNormal = new Vector3();
+			Vector3 hitSurfaceRGB = new Vector3();
+
+			// did we scatter to a surface?
+			if (scene.intersect(surfacePoint, scatterRay, hitPoint, 
+					hitSurfaceNormal, hitSurfaceRGB)) {
+
+				Vector3 workingSunRay =  getSunlightRay();
+				Vector3 hitSurfaceIllumination = new Vector3();
+
+				// is that surface directly illuminated?
+				if (!scene.intersect(hitPoint, workingSunRay.scale(-1), 
+						null, null, null)) {
+					double lambert = hitSurfaceNormal.dot(workingSunRay);
+					lambert = lambert < 0 ? -lambert : lambert;
+					hitSurfaceIllumination.setAdd(hitSurfaceRGB.scale(lambert));
+				}
+				
+				// how much light is that surface giving us?
+				double distance = surfacePoint.sub(hitPoint).mag() + 1;
+				double lambert = surfaceNormal.dot(scatterRay);
+				lambert = lambert < 0 ? -lambert : lambert;
+
+ 				totalLightContribution.setAdd(hitSurfaceIllumination
+				 		.add(recursiveIllumination(
+						bounceNumber++, hitPoint, hitSurfaceNormal))
+				 		.scale(lambert / (globalIllumScalar * distance * distance)));
+			}
+		}
+
+		
+		return totalLightContribution;
+
+	}
 
 	/**
 	 * Create all the render threads to run
@@ -271,7 +366,7 @@ public class PathTracer {
 			System.exit(1);
 		}
 
-		scene.meshes.add(OBJReader.read("obj/bunny.obj"));
+		scene.meshes.add(OBJReader.read("obj/dragon.obj"));
 		scene.meshes.add(OBJReader.read("obj/plane.obj"));
 
 

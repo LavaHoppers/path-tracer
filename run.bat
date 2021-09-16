@@ -1,7 +1,7 @@
 @ECHO OFF
 TITLE Path Tracer
 
-SET args=720 480 -m 50 -d -a 5
+SET args=720 480 -m 48 -d -a 2 -o -g 5 1 3
 
 :: Set the location for the *.class files
 SET bin=bin

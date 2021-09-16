@@ -101,7 +101,7 @@ public class Scene {
         if (normOut != null)
             normOut.set(closeTri.norm());
         if (rgbOut != null)
-            rgbOut.set(new Vector3(180, 180, 180));
+            rgbOut.set(new Vector3(255, 255, 255));
         
         return true;
 
