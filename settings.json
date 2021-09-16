@@ -5,20 +5,21 @@
     "png-output-location": "./img",
     "realtime-display": true,
 
-    "camera-position": [0.0, 0.0, 0.0],
-    "camera-pitch": 0.0,
-    "camera-yaw": 0.0,
+    "camera-position": [-0.5, 7.8, 10.0],
+    "camera-pitch": -0.314,
+    "camera-yaw":  1.5,
 
     "antialiasing": true,
-    "antialiasing-multiplier": 1,
+    "antialiasing-multiplier": 4,
 
     "multithreaded-render": true,
+    "multithreaded-render-block-dim": 48,
     "verbose-console": false,
 
     "global-illumination": true,
     "global-illumination-bounces": 1,
-    "global-illumination-scatters": 1,
-    "inverse-square-law-constant": 3,
+    "global-illumination-scatters": 10,
+    "inverse-square-law-constant": 2.5,
 
     "scene" : [
         {

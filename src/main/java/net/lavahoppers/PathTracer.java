@@ -1,5 +1,9 @@
 package net.lavahoppers;
+import java.io.FileReader;
 import java.util.Random;
+
+import org.json.simple.*;
+import org.json.simple.parser.*;
 
 /**
  * The main class for the PathTracer.
@@ -21,20 +25,20 @@ public class PathTracer {
 	public static boolean isGlobalIllumination = false;
 	public static int globalIllumBounces = 1;
 	public static int globalIllumScatters = 1;
-	public static int globalIllumScalar = 1;
+	public static double globalIllumScalar = 1;
+
+	public static String outputFileLocation = "./";
  
 	public static FastBufferedImage image = null;
 	public static Display display = null;
 	public static Scene	scene = new Scene();
 	public static final Random RANDOM = new Random();
 
-	public static final Vector3 cameraLocation = new Vector3(-0.5, 7.8, 10);
-	public static final double cameraTheta = Math.PI * .5;
-	public static final double cameraPhi = Math.PI * -.1;
-	public static final Matrix cameraPhiMatrix = 
-			Matrix.getZRotationMatrix(cameraPhi);
-	public static final Matrix cameraThetaMatrix = 
-			Matrix.getYRotationMatrix(cameraTheta);
+	public static Vector3 cameraLocation = null;
+	public static double cameraTheta = 0;
+	public static double cameraPhi = 0;
+	public static Matrix cameraPhiMatrix = null;
+	public static Matrix cameraThetaMatrix = null;
 			
 	
 	/**
@@ -158,6 +162,58 @@ public class PathTracer {
 		return true;
 	}
 
+	/**
+	 * Imports the variables from settings.json
+	 * 
+	 * @see https://www.tutorialspoint.com/how-can-we-read-a-json-file-in-java
+	 * @return true if the import is successful, false otherwise
+	 */
+	public static boolean parseSettings() {
+
+		JSONParser parser = new JSONParser();
+		try {
+
+			JSONObject json = (JSONObject)parser.parse(
+				new FileReader("settings.json"));
+
+			JSONArray resolution = (JSONArray)json.get("render-resolution");
+			image = new FastBufferedImage((int)(long)resolution.get(0),
+				(int)(long)resolution.get(1));
+			image.fillGrayChecker(50, 0xAF, 0xC0);
+
+			isVerboseConsole = (boolean)json.get("verbose-console");
+		 	isSaveToFile = (boolean)json.get("save-render-to-png");
+			isMultithreadRender = (boolean)json.get("multithreaded-render");
+			multithreadDimension = 
+				(int)(long)json.get("multithreaded-render-block-dim");
+			subPixelSamples = (int)(long)json.get("antialiasing-multiplier");;
+			
+			if ((boolean)json.get("realtime-display"))
+				display = new Display("Path Tracer", image);
+
+			outputFileLocation = (String)json.get("png-output-location");
+
+			JSONArray position = (JSONArray)json.get("camera-position");
+			cameraLocation = new Vector3((double)position.get(0), 
+				(double)position.get(1), 
+				(double)position.get(2));
+			cameraPhi = (double)json.get("camera-pitch");
+			cameraTheta = (double)json.get("camera-yaw");
+			cameraPhiMatrix = Matrix.getZRotationMatrix(cameraPhi);
+			cameraThetaMatrix = Matrix.getYRotationMatrix(cameraTheta);
+
+			isGlobalIllumination = (boolean)json.get("global-illumination");
+			globalIllumBounces = (int)(long)json.get("global-illumination-bounces");
+			globalIllumScatters = (int)(long)json.get("global-illumination-scatters");
+			globalIllumScalar = (double)json.get("inverse-square-law-constant");
+
+		} catch(Exception e) {
+			
+			System.out.println("Couldn't read supplied settings.json");
+			e.printStackTrace();
+		}
+		return true;
+	}
 
 	/**
      * Render a single pixel on the image
@@ -356,12 +412,14 @@ public class PathTracer {
 	 */
 	public static void main(String[] args) {
 
-		if(!parseArgs(args)) {
-			System.out.println("Could not read supplied arguments");
-			System.exit(1);
-		}
 
-		scene.meshes.add(OBJReader.read("obj/dragon.obj"));
+		//if(!parseArgs(args)) {
+		//	System.out.println("Could not read supplied arguments");
+		//	System.exit(1);
+		//}
+		parseSettings();
+
+		scene.meshes.add(OBJReader.read("obj/teapot.obj"));
 		scene.meshes.add(OBJReader.read("obj/plane.obj"));
 
 
@@ -376,8 +434,10 @@ public class PathTracer {
 
 		while(0 < RenderThread.running()) { sleep(); }
 
-		if (isSaveToFile)
-			image.savePNG("./img", System.currentTimeMillis() + ".png");
+		if (isSaveToFile) {
+			image.savePNG(outputFileLocation, System.currentTimeMillis() + ".png");
+			System.out.println("Saved file");
+		}
 		System.out.print("Render Complete");
 	}
 
