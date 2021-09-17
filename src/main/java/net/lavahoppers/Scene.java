@@ -8,6 +8,13 @@ package net.lavahoppers;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
+import javax.imageio.ImageIO;
+
+import java.io.File;
+import java.io.IOException;
+
+import java.awt.image.BufferedImage;
+
 /**
  * Class for containing all the 3D elements of a scene
  * <p>
@@ -20,12 +27,18 @@ import java.util.LinkedList;
 public class Scene {
     
     public ArrayList<Mesh> meshes;
+    public static BufferedImage HDRI = null;
 
     /**
      * Create a new scene
      */
     Scene() {
         meshes = new ArrayList<Mesh>();
+        try {
+            HDRI = ImageIO.read(new File("./img/HDRI_3.jpg"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -93,7 +106,7 @@ public class Scene {
 
         if (closeTri == null) {
             if (rgbOut != null)
-                rgbOut.set(135f, 206f, 235f);
+                rgbOut.set(getDirectionalLight(ray));
             return false;
             
         }
@@ -106,6 +119,42 @@ public class Scene {
         
         return true;
 
+    }
+
+    
+    public static Vector3 getDirectionalLight(Vector3 direction) {
+
+
+        Vector3 horizontalComponent = direction.copy();
+        horizontalComponent.setY(0);
+        horizontalComponent.setNorm();
+        double horizontalDot = horizontalComponent.dot(Vector3.I_HAT);
+        double hAngle = Math.acos(horizontalDot);
+        if (horizontalComponent.getZ() > 0)
+            hAngle = Math.PI * 2 - hAngle;
+
+        double verticalDot = direction.dot(Vector3.J_HAT);
+        double vAngle = Math.acos(verticalDot);
+
+        double x = HDRI.getWidth() * (hAngle) / (Math.PI * 2) - 0.00001;
+        double y = HDRI.getHeight() * (vAngle / Math.PI);
+
+        //Random rand = new Random();
+        //x = rand.nextInt(HDRI.getWidth());
+        //y = rand.nextInt(HDRI.getHeight());
+
+        //int color = data.getElem(x + y * HDRI.getWidth());
+        int color = HDRI.getRGB((int)x, (int)y);
+
+        //color = 0xFF0000;
+        //System.out.printf("x: %d y: %d color: %d ", x, y, color);
+        Vector3 temp = new Vector3(
+            (color >> 16) & 0xFF,  
+            (color >> 8 ) & 0xFF,
+            (color      ) & 0xFF 
+        );
+        //System.out.println("rgb: " + temp);
+        return temp;
     }
 
 }

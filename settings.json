@@ -5,30 +5,20 @@
     "png-output-location": "./img",
     "realtime-display": true,
 
-    "camera-position": [-0.5, 7.8, 10.0],
-    "camera-pitch": -0.314,
-    "camera-yaw":  1.5,
+    "camera-position": [-6.0, 10.0, -10.0],
+    "camera-pitch": -0.4,
+    "camera-yaw": -1.1,
 
     "antialiasing": true,
-    "antialiasing-multiplier": 4,
+    "antialiasing-multiplier": 8,
 
     "multithreaded-render": true,
-    "multithreaded-render-block-dim": 48,
     "verbose-console": false,
 
-    "global-illumination": true,
+    "global-illumination": false,
     "global-illumination-bounces": 1,
-    "global-illumination-scatters": 10,
-    "inverse-square-law-constant": 2.5,
+    "global-illumination-scatters": 3,
+    "inverse-square-law-constant": 1.0,
 
-    "scene" : [
-        {
-            "file": "./obj/bunny.obj"
-
-        }, {
-
-        }
-
-    ]
 
 }

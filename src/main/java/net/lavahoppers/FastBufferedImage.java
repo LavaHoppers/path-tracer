@@ -55,6 +55,7 @@ public class FastBufferedImage extends BufferedImage {
      */
     public void setPixel(int x, int y, int r, int g, int b) {
         data.setElem(x + y * getWidth(), r << 16 | g << 8 | b);
+
     }
 
     /**

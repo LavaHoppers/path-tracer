@@ -2,6 +2,8 @@ package net.lavahoppers;
 import java.io.FileReader;
 import java.util.Random;
 
+import javax.swing.event.InternalFrameListener;
+
 import org.json.simple.*;
 import org.json.simple.parser.*;
 
@@ -19,7 +21,7 @@ public class PathTracer {
 	private static boolean isVerboseConsole = false;
 	private static boolean isSaveToFile = false;
 	private static boolean isMultithreadRender = false;
-	public static int multithreadDimension = 0;
+	public static int multithreadDimension = 48;
 	public static int subPixelSamples = 1;
 
 	public static boolean isGlobalIllumination = false;
@@ -73,96 +75,6 @@ public class PathTracer {
 	}
 
 	/**
-	 * Parse the runtime arguments and setup the engine
-	 * <p>
-	 * This function is very strict and will not hesitate to throw you an error
-	 * if the supplied arguments are in the wrong format! Handle with care...
-	 * 
-	 * @param args the runtime arguments
-	 * @return true if the runtime arguments are in the correct format, false
-	 * 		   otherwise
-	 */
-	public static boolean parseArgs(String[] args) {
-
-		// check if args are supplied
-		if (args == null || args.length < 2) {
-			System.out.println("Error: not enough args supplied");
-			System.out.println("Usage: args=<width> <height>");
-			return false;
-		}
-
-		// get the resolution 
-		try {
-			int width = Integer.parseInt(args[0]);
-			int height = Integer.parseInt(args[1]);
-			assert 0 < width;
-			assert 0 < height;
-			image = new FastBufferedImage(width, height);
-			image.fillGrayChecker(50, 0xAF, 0xC0);
-		} catch (Exception e) {
-			System.out.println("Usage: args=<width> <height>");
-			return false;
-		}	
-
-		for (int i = 0; i < args.length; i++) {
-			
-			if (args[i].equals("-g")) {
-				isGlobalIllumination = true;
-				try {
-					globalIllumScatters = Integer.parseInt(args[i + 1]);
-					globalIllumBounces = Integer.parseInt(args[i + 2]);
-					globalIllumBounces = Integer.parseInt(args[i + 3]);
-				} 
-				catch (Exception e) {
-					System.out.println("Usage: -g <scatters> <bounces> <scalar>");
-					return false;
-				}
-			}
-
-			if (args[i].equals("-v")) {
-				isVerboseConsole = true;
-			}
-
-			if (args[i].equals("-m")) {
-				isMultithreadRender = true;
-				try {
-					int d = Integer.parseInt(args[i + 1]);
-					multithreadDimension = d;
-				} 
-				catch (Exception e) {
-					System.out.println("Usage: -m <multithreadDimension>");
-					return false;
-				}
-
-			}
-			
-			else if (args[i].equals("-a")) {
-				try {
-					int a = Integer.parseInt(args[i + 1]);
-					subPixelSamples = a;
-				} 
-				catch (Exception e) {
-					System.out.println("Usage: -a <subPixelSamples>");
-					return false;
-				}
-			}
-
-			else if (args[i].equals("-o")) {
-				isSaveToFile = true;
-			}
-
-			else if (args[i].equals("-d")) {
-				vPrint("Creating Display...");
-				display = new Display("Path Tracer", image);
-				vPrint("Display created...");
-			}
-
-		}
-		
-		return true;
-	}
-
-	/**
 	 * Imports the variables from settings.json
 	 * 
 	 * @see https://www.tutorialspoint.com/how-can-we-read-a-json-file-in-java
@@ -184,10 +96,10 @@ public class PathTracer {
 			isVerboseConsole = (boolean)json.get("verbose-console");
 		 	isSaveToFile = (boolean)json.get("save-render-to-png");
 			isMultithreadRender = (boolean)json.get("multithreaded-render");
-			multithreadDimension = 
-				(int)(long)json.get("multithreaded-render-block-dim");
-			subPixelSamples = (int)(long)json.get("antialiasing-multiplier");;
-			
+			if ((boolean)json.get("antialiasing"))
+				subPixelSamples = (int)(long)json.get("antialiasing-multiplier");
+			else
+				subPixelSamples = 1;
 			if ((boolean)json.get("realtime-display"))
 				display = new Display("Path Tracer", image);
 
@@ -234,18 +146,27 @@ public class PathTracer {
                 Vector3 surfaceNormal = new Vector3();
 				Vector3 returnedRGB = new Vector3();
 
-				//**
 				if (scene.intersect(cameraLocation, cameraRay, intersectPoint, 
 						surfaceNormal, returnedRGB)) {
 				
 					Vector3 workingSunRay = getSunlightRay();
+					Vector3 ambientLight = Scene.getDirectionalLight(workingSunRay);
 
 					// direct illumination
 					if (!scene.intersect(intersectPoint, 
 							workingSunRay.scale(-1), null, null, null)) {
+
 						double lambert = surfaceNormal.dot(workingSunRay);
 						lambert = lambert < 0 ? -lambert : lambert;
-						pixelRGB.setAdd(returnedRGB.scale(lambert));
+
+
+
+						//ambientLight = new Vector3(255, 255, 255);
+						pixelRGB.setAdd(new Vector3(
+							ambientLight.getX(), 
+							ambientLight.getY(), 
+							ambientLight.getZ())
+							.scale(lambert));
 					}
 
 					// global illumination
@@ -256,7 +177,7 @@ public class PathTracer {
 				} else {
 					pixelRGB.setAdd(returnedRGB);
 				}
-				// */
+				
 
 				
             }
@@ -279,11 +200,11 @@ public class PathTracer {
 	 * @return get a random sunlight ray
 	 */
 	public static Vector3 getSunlightRay() {
-		//**
+		/**
 		return new Vector3((RANDOM.nextDouble() - 0.5) * .05, -1, 
 				(RANDOM.nextDouble() - 0.5) *.05).norm();
 		// */
-		/*
+		//*
 		return new Vector3((RANDOM.nextDouble() - 0.5), (RANDOM.nextDouble() - 0.5), 
 				(RANDOM.nextDouble() - 0.5)).norm();
 		// */
@@ -412,14 +333,9 @@ public class PathTracer {
 	 */
 	public static void main(String[] args) {
 
-
-		//if(!parseArgs(args)) {
-		//	System.out.println("Could not read supplied arguments");
-		//	System.exit(1);
-		//}
 		parseSettings();
 
-		scene.meshes.add(OBJReader.read("obj/teapot.obj"));
+		scene.meshes.add(OBJReader.read("obj/dragon.obj"));
 		scene.meshes.add(OBJReader.read("obj/plane.obj"));
 
 
