@@ -2,7 +2,6 @@ package net.lavahoppers;
 import java.io.FileReader;
 import java.util.Random;
 
-import javax.swing.event.InternalFrameListener;
 
 import org.json.simple.*;
 import org.json.simple.parser.*;
@@ -48,21 +47,17 @@ public class PathTracer {
 	 * 
 	 * @param x the pixel's x position
 	 * @param y the pixel's y position
-	 * @param i the pixel's sub x location
-	 * @param j the pixel's sub y location
+	 * 
 	 * @return the camera ray
 	 */
-	public static Vector3 getCameraRay(int x, int y, int i, int j) {
-
-		double xp = x * subPixelSamples + i;
-		double yp = y * subPixelSamples + j;
+	public static Vector3 getCameraRay(int x, int y) {
 
 		double inv = (double)image.getHeight() / image.getWidth();
 
 		Vector3 ray = new Vector3(
 			1.0,
-			inv - (2.0 * inv) * yp / (image.getHeight() * subPixelSamples),
-			1.0 - (2.0 		) * xp / (image.getWidth() * subPixelSamples)
+			inv - (2.0 * inv) * (y + RANDOM.nextDouble()) / image.getHeight(),
+			1.0 - (2.0 		) * (x + RANDOM.nextDouble()) / image.getWidth()
 		);
 
 		if (cameraPhi != 0)
@@ -135,58 +130,69 @@ public class PathTracer {
      */
     public static void renderPixel(int x, int y) {
 
-        Vector3 pixelRGB = new Vector3();
+        Vector3 pixelColor = new Vector3();
 		
+        for (int sample = 0; sample < subPixelSamples; sample++) {
 
-        for (int j = 0; j < subPixelSamples; j++) 
-            for (int i = 0; i < subPixelSamples; i++) {
+			Vector3 cameraRay = getCameraRay(x, y);
+			Vector3 surfaceLocation = new Vector3();
+			Vector3 surfaceNormal = new Vector3();
+			Vector3 surfaceColor = new Vector3();
 
-                Vector3 cameraRay = getCameraRay(x, y, i, j);
-                Vector3 intersectPoint = new Vector3();
-                Vector3 surfaceNormal = new Vector3();
-				Vector3 returnedRGB = new Vector3();
+			if (scene.intersect(cameraLocation, cameraRay, surfaceLocation, 
+					surfaceNormal, surfaceColor)) {
 
-				if (scene.intersect(cameraLocation, cameraRay, intersectPoint, 
-						surfaceNormal, returnedRGB)) {
-				
-					Vector3 workingSunRay = getSunlightRay();
-					Vector3 ambientLight = Scene.getDirectionalLight(workingSunRay);
+				double c = 10;
+				double b = .1;
+				double a = cameraRay.scale(-1).dot(surfaceNormal);
+				a = a < 0 ? -a : a;
 
-					// direct illumination
-					if (!scene.intersect(intersectPoint, 
-							workingSunRay.scale(-1), null, null, null)) {
+				double fresnel = 1.0 / (1.0 + b) * 
+					(Math.pow(2.0, a * -c) + b);
 
-						double lambert = surfaceNormal.dot(workingSunRay);
-						lambert = lambert < 0 ? -lambert : lambert;
+				Vector3 scatterRay = null;
+				if (RANDOM.nextDouble() > fresnel)
+					scatterRay = getDiffuseScatter(surfaceNormal);
+				else
+					scatterRay = getSpecularScatter(.2, surfaceNormal, cameraRay);
+
+				double cosOfAngle = surfaceNormal.dot(scatterRay);
+				cosOfAngle = cosOfAngle < 0 ? -cosOfAngle : cosOfAngle;
 
 
+				// direct illumination
+				if (!scene.intersect(surfaceLocation, scatterRay, 
+					null, null, null)) {
 
-						//ambientLight = new Vector3(255, 255, 255);
-						pixelRGB.setAdd(new Vector3(
-							ambientLight.getX(), 
-							ambientLight.getY(), 
-							ambientLight.getZ())
-							.scale(lambert));
+					double multiplier = 1;
+
+					Vector3 light = Scene.getDirectionalLight(scatterRay);
+					if (light.getX() == 255 && light.getY() == 255 && light.getZ() == 255) {
+						multiplier = 8;
 					}
 
-					// global illumination
-					if (isGlobalIllumination)
-						pixelRGB.setAdd(recursiveIllumination(0, intersectPoint, 
-						surfaceNormal));
-
-				} else {
-					pixelRGB.setAdd(returnedRGB);
+					pixelColor.setAdd(
+						light.scale(cosOfAngle * multiplier));
 				}
+
+				// global illumination
+				if (isGlobalIllumination)
+					pixelColor.setAdd(recursiveIllumination(0, surfaceLocation, 
+					surfaceNormal).scale(cosOfAngle));
+
+			} else {
+				pixelColor.setAdd(surfaceColor);
+			}
 				
 
 				
-            }
+		}
 
-        pixelRGB.setScale(1.0 / (subPixelSamples * subPixelSamples));
+        pixelColor.setScale(1.0 / (subPixelSamples));
         image.setPixel(x, y, 
-			(int)(pixelRGB.getX() > 255 ? 255 : pixelRGB.getX()), 
-			(int)(pixelRGB.getY() > 255 ? 255 : pixelRGB.getY()), 
-			(int)(pixelRGB.getZ() > 255 ? 255 : pixelRGB.getZ())); 
+			(int)(pixelColor.getX() > 255 ? 255 : pixelColor.getX()), 
+			(int)(pixelColor.getY() > 255 ? 255 : pixelColor.getY()), 
+			(int)(pixelColor.getZ() > 255 ? 255 : pixelColor.getZ())); 
 
 		if (display != null)
 			display.repaint();
@@ -196,30 +202,45 @@ public class PathTracer {
 	 * Gives a random sunlight ray
 	 * <p>
 	 * Randomizing the sulight rays a bit allows for soft shadows.
-	 * 
+	 * @param surfaceNormal the normal to the surfece that the ray is scattering
+	 * 						from
 	 * @return get a random sunlight ray
 	 */
-	public static Vector3 getSunlightRay() {
-		/**
-		return new Vector3((RANDOM.nextDouble() - 0.5) * .05, -1, 
-				(RANDOM.nextDouble() - 0.5) *.05).norm();
-		// */
-		//*
-		return new Vector3((RANDOM.nextDouble() - 0.5), (RANDOM.nextDouble() - 0.5), 
-				(RANDOM.nextDouble() - 0.5)).norm();
-		// */
+	public static Vector3 getDiffuseScatter(Vector3 surfaceNormal) {
+
+		Vector3 scatterRay = new Vector3(
+			RANDOM.nextDouble() - 0.5,
+			RANDOM.nextDouble() - 0.5,
+			RANDOM.nextDouble() - 0.5
+		).setNorm();
+
+		if (scatterRay.dot(surfaceNormal) < 0) 
+			scatterRay.setScale(-1.0);
+		
+		return scatterRay;
+	}
+
+	public static Vector3 getSpecularScatter(double spread, Vector3 surfaceNormal, Vector3 ray) {
+
+		Vector3 scatterRay = new Vector3(
+			RANDOM.nextDouble() - 0.5,
+			RANDOM.nextDouble() - 0.5,
+			RANDOM.nextDouble() - 0.5
+		).setNorm();
+
+		return Vector3.rotate(ray, surfaceNormal, Math.PI).scale(-1).add(scatterRay.scale(spread)).norm();
 	}
 
 	/**
 	 * returns the light intensity of a certain ray based on its surroundings
 	 * 
 	 * @param bounceNumber the current bounce
-	 * @param surfacePoint the point looking to be illuminated
+	 * @param surfaceLocation the point looking to be illuminated
 	 * @param surfaceNormal the normal to the point
 	 * @return
 	 */
 	public static Vector3 recursiveIllumination(int bounceNumber, 
-		Vector3 surfacePoint, Vector3 surfaceNormal) {
+		Vector3 surfaceLocation, Vector3 surfaceNormal) {
 
 		if (globalIllumBounces <= bounceNumber)
 			return new Vector3(0x00, 0x00, 0x00);
@@ -228,29 +249,20 @@ public class PathTracer {
 
 		for (int scatters = 0; scatters < globalIllumScatters; scatters++) {
 
-			double angle1 = RANDOM.nextDouble() * Math.PI / 2;
-			double angle2 = RANDOM.nextDouble() * Math.PI * 2;
-
-			Vector3 localXAxis = Vector3.I_HAT.cross(surfaceNormal);
-
-			Vector3 scatterRay = Vector3.rotate(surfaceNormal, localXAxis, 
-					angle1);
-			scatterRay =  Vector3.rotate(scatterRay, surfaceNormal, 
-					angle2);
-
+			Vector3 scatterRay = getDiffuseScatter(surfaceNormal);
 			Vector3 hitPoint = new Vector3();
 			Vector3 hitSurfaceNormal = new Vector3();
 			Vector3 hitSurfaceRGB = new Vector3();
 
 			// did we scatter to a surface?
-			if (scene.intersect(surfacePoint, scatterRay, hitPoint, 
+			if (scene.intersect(surfaceLocation, scatterRay, hitPoint, 
 					hitSurfaceNormal, hitSurfaceRGB)) {
 
-				Vector3 workingSunRay =  getSunlightRay();
+				Vector3 workingSunRay =  getDiffuseScatter(surfaceNormal);
 				Vector3 hitSurfaceIllumination = new Vector3();
 
 				// is that surface directly illuminated?
-				if (!scene.intersect(hitPoint, workingSunRay.scale(-1), 
+				if (!scene.intersect(hitPoint, workingSunRay, 
 						null, null, null)) {
 					double lambert = hitSurfaceNormal.dot(workingSunRay);
 					lambert = lambert < 0 ? -lambert : lambert;
@@ -258,7 +270,7 @@ public class PathTracer {
 				}
 				
 				// how much light is that surface giving us?
-				double distance = surfacePoint.sub(hitPoint).mag() + 1;
+				double distance = surfaceLocation.sub(hitPoint).mag() + 1;
 				double lambert = surfaceNormal.dot(scatterRay);
 				lambert = lambert < 0 ? -lambert : lambert;
 

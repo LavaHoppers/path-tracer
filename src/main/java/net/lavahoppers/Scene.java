@@ -5,6 +5,7 @@ package net.lavahoppers;
  * 30 May 2021
  */
 
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 
@@ -14,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 
 import java.awt.image.BufferedImage;
+
 
 /**
  * Class for containing all the 3D elements of a scene
@@ -28,6 +30,9 @@ public class Scene {
     
     public ArrayList<Mesh> meshes;
     public static BufferedImage HDRI = null;
+    public static BufferedImage exr = null;
+
+    
 
     /**
      * Create a new scene
@@ -35,10 +40,12 @@ public class Scene {
     Scene() {
         meshes = new ArrayList<Mesh>();
         try {
-            HDRI = ImageIO.read(new File("./img/HDRI_3.jpg"));
+            HDRI = ImageIO.read(new File("./img/hdri/kloppenheim.png"));
         } catch (IOException e) {
             e.printStackTrace();
         }
+        
+
     }
 
     /**
@@ -139,22 +146,13 @@ public class Scene {
         double x = HDRI.getWidth() * (hAngle) / (Math.PI * 2) - 0.00001;
         double y = HDRI.getHeight() * (vAngle / Math.PI);
 
-        //Random rand = new Random();
-        //x = rand.nextInt(HDRI.getWidth());
-        //y = rand.nextInt(HDRI.getHeight());
-
-        //int color = data.getElem(x + y * HDRI.getWidth());
         int color = HDRI.getRGB((int)x, (int)y);
 
-        //color = 0xFF0000;
-        //System.out.printf("x: %d y: %d color: %d ", x, y, color);
-        Vector3 temp = new Vector3(
+        return new Vector3(
             (color >> 16) & 0xFF,  
             (color >> 8 ) & 0xFF,
             (color      ) & 0xFF 
         );
-        //System.out.println("rgb: " + temp);
-        return temp;
     }
 
 }
