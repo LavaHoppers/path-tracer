@@ -1,4 +1,4 @@
-![Globaly Illuminated Dragon](example.png)
+![Globaly Illuminated Dragon](example_2.png)
 
 # Overview
 This path tracer is a project used to experiment with the math used by commercial path tracers. I wanted this project to be easy to understand, so it is written in plain Java with minimal imports. 
