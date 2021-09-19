@@ -1,17 +1,14 @@
+package net.lavahoppers;
+
 /**
  * PathTracer.java
  * 
- * Joshua Hopwood
- * 09/19/2021
+ * 19 Sep 2021
  */
 
-package net.lavahoppers;
-
-import java.io.FileReader;
 import java.util.Random;
 
-import org.json.simple.*;
-import org.json.simple.parser.*;
+import org.json.simple.JSONObject;
 
 /**
  * The main class for the PathTracer.
@@ -25,7 +22,6 @@ import org.json.simple.parser.*;
 public class PathTracer {
 
 	public static boolean isVerboseConsole = false;
-	public static boolean isSaveToFile = false;
 	public static boolean isMultithreadRender = false;
 	public static boolean isGlobalIllumination = false;
 
@@ -37,10 +33,11 @@ public class PathTracer {
 	public static double globalIllumScalar = 1;
 
 	public static String outputFileLocation = "./";
+	public static String hdriFileName = "";
  
 	public static FastBufferedImage image = null;
 	public static Display display = null;
-	public static Scene	scene = new Scene();
+	public static Scene	scene = null;
 	public static final Random RANDOM = new Random();
 
 	public static Vector3 cameraLocation = null;
@@ -83,53 +80,52 @@ public class PathTracer {
 	 * @see https://www.tutorialspoint.com/how-can-we-read-a-json-file-in-java
 	 * @return true if the import is successful, false otherwise
 	 */
-	public static boolean parseSettings() {
+	public static void parseSettings() {
 
-		JSONParser parser = new JSONParser();
-		try {
+		JSONObject root = JSONReader.getRoot("settings.json");
 
-			JSONObject json = (JSONObject)parser.parse(
-				new FileReader("settings.json"));
+		int[] res = JSONReader.getIntArray(root, "resolution");
+		image = new FastBufferedImage(res[0], res[1]);
 
-			JSONArray resolution = (JSONArray)json.get("resolution");
-			image = new FastBufferedImage((int)(long)resolution.get(0),
-				(int)(long)resolution.get(1));
-			image.fillGrayChecker(MULTITHREADED_DIMENSION, 0xAF, 0xC0);
+		image.fillGrayChecker(MULTITHREADED_DIMENSION, 0xAF, 0xC0);
 
-			isVerboseConsole = (boolean)json.get("verbose-console");
-		 	isSaveToFile = (boolean)json.get("save-render-to-png");
-			isMultithreadRender = (boolean)json.get("multithreaded-render");
-			if ((boolean)json.get("antialiasing"))
-				subPixelSamples = (int)(long)json.get("antialiasing-multiplier");
-			else
-				subPixelSamples = 1;
-			if ((boolean)json.get("realtime-display"))
-				display = new Display("Path Tracer", image);
+		isVerboseConsole = JSONReader.getBoolean(root, "verbose-console");
+		isMultithreadRender = JSONReader.getBoolean(
+			root, "multithreaded-render"
+		);
+		
+		subPixelSamples = JSONReader.getInt(root, "samples-per-pixel");
 
-			outputFileLocation = (String)json.get("png-output-location");
+		display = JSONReader.getBoolean(root, "realtime-display") ?
+			new Display("Path Tracer", image) :
+			null;
 
-			JSONArray location = (JSONArray)json.get("camera-location");
-			cameraLocation = new Vector3(
-				(double)location.get(0), 
-				(double)location.get(1), 
-				(double)location.get(2)
-			);
-			cameraPhi = (double)json.get("camera-pitch");
-			cameraTheta = (double)json.get("camera-yaw");
-			cameraPhiMatrix = Matrix.getZRotationMatrix(cameraPhi);
-			cameraThetaMatrix = Matrix.getYRotationMatrix(cameraTheta);
+		outputFileLocation = JSONReader.getString(root, "image-output-dir");
 
-			isGlobalIllumination = (boolean)json.get("global-illumination");
-			globalIllumBounces = (int)(long)json.get("global-illumination-bounces");
-			globalIllumScatters = (int)(long)json.get("global-illumination-scatters");
-			globalIllumScalar = (double)json.get("inverse-square-law-constant");
+		double[] loc = JSONReader.getDoubleArray(root, "camera-location");
+		cameraLocation = new Vector3(loc[0], loc[1], loc[2]);
 
-		} catch(Exception e) {
-			
-			System.out.println("Couldn't read supplied settings.json");
-			e.printStackTrace();
-		}
-		return true;
+		cameraPhi = JSONReader.getDouble(root, "camera-pitch");
+		cameraTheta = JSONReader.getDouble(root, "camera-yaw");
+		cameraPhiMatrix = Matrix.getZRotationMatrix(cameraPhi);
+		cameraThetaMatrix = Matrix.getYRotationMatrix(cameraTheta);
+
+		isGlobalIllumination = JSONReader.getBoolean(
+			root, "global-illumination"
+		);
+		globalIllumBounces = JSONReader.getInt(
+			root, "global-illumination-bounces"
+		);
+		globalIllumScatters = JSONReader.getInt(
+			root, "global-illumination-scatters"
+		);
+		globalIllumScalar = JSONReader.getDouble(
+			root, "inverse-square-law-constant"
+		);
+
+		hdriFileName = JSONReader.getString(root, "hdri-file-name");
+
+	
 	}
 
 	/**
@@ -369,7 +365,11 @@ public class PathTracer {
 	 */
 	public static void main(String[] args) {
 
+		long startTime = System.currentTimeMillis();
+
 		parseSettings();
+
+		scene = new Scene();
 
 		scene.meshes.add(OBJReader.read("obj/dragon.obj"));
 		scene.meshes.add(OBJReader.read("obj/plane.obj"));
@@ -386,11 +386,27 @@ public class PathTracer {
 
 		while(0 < RenderThread.running()) { sleep(); }
 
-		if (isSaveToFile) {
-			image.savePNG(outputFileLocation, System.currentTimeMillis() + ".png");
-			System.out.println("Saved file");
-		}
-		System.out.print("Render Complete");
+		String fileName = "" + System.currentTimeMillis();
+		image.savePNG(outputFileLocation, fileName);
+
+		long deltaTime = System.currentTimeMillis() - startTime;
+
+		System.out.printf(
+			"Render finished in %dh:%dm:%ds:%dms.\n",
+			deltaTime / 1000L / 60L / 60L,
+			(deltaTime / 1000L / 60L) % 60L,
+			(deltaTime / 1000L) % 60L,
+			deltaTime  % 1000L
+		);
+
+		System.out.printf(
+			"The average milliseconds per sample was %f.\n",
+			(double)(subPixelSamples * globalIllumBounces * globalIllumScatters)
+			/ (double)deltaTime	
+		);
+
+		System.out.println("Saved completed render as \"" + fileName + 
+			".png\" in \"" + outputFileLocation + "\"." );
 	}
 
 }

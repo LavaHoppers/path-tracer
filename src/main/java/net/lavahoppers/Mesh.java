@@ -1,4 +1,5 @@
 package net.lavahoppers;
+
 /*
  * Mesh.java
  * 
@@ -29,11 +30,7 @@ class Mesh {
         this.verticies = verticies;
         this.triangles = triangles;
         root.add(triangles);
-        System.out.println(root.min);
-        
-        System.out.println("Building BVH");
         root.buildBVH();
-        System.out.println("Done Building BVH");
     }
 
     /**

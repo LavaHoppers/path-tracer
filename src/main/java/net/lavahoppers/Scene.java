@@ -1,4 +1,5 @@
 package net.lavahoppers;
+
 /*
  * Scene.java
  * 
@@ -32,20 +33,18 @@ public class Scene {
     public static BufferedImage HDRI = null;
     public static BufferedImage exr = null;
 
-    
-
     /**
      * Create a new scene
      */
     Scene() {
         meshes = new ArrayList<Mesh>();
         try {
-            HDRI = ImageIO.read(new File("./img/hdri/kloppenheim.png"));
+            HDRI = ImageIO.read(new File(PathTracer.hdriFileName));
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Couldn't read HDRI \"" + 
+                PathTracer.hdriFileName + "\".");
+                System.exit(1);
         }
-        
-
     }
 
     /**
@@ -130,7 +129,6 @@ public class Scene {
 
     
     public static Vector3 getDirectionalLight(Vector3 direction) {
-
 
         Vector3 horizontalComponent = direction.copy();
         horizontalComponent.setY(0);

@@ -1,4 +1,5 @@
 package net.lavahoppers;
+
 /*
  * Triangle.java
  * 

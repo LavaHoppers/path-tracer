@@ -1,11 +1,10 @@
-/**
+package net.lavahoppers;
+
+/*
  * JSONReader.java
  * 
- * Joshua Hopwood
- * 09/19/2021
+ * 19 Sep 2021
  */
-
-package net.lavahoppers;
 
 import java.io.FileReader;
 
@@ -24,7 +23,7 @@ public class JSONReader {
      * 
      * @param file String the settings file
      */
-    public JSONObject getRoot(String file) {
+    public static JSONObject getRoot(String file) {
         JSONParser parser = new JSONParser();
 		try {
 			return (JSONObject)parser.parse(new FileReader(file));
@@ -43,7 +42,7 @@ public class JSONReader {
      * 
      * @return the value of the key as a boolean
      */
-    public boolean getBoolean(JSONObject json, String key) {
+    public static boolean getBoolean(JSONObject json, String key) {
         try {
             return (boolean)json.get(key);
         } catch (Exception e) {
@@ -62,7 +61,7 @@ public class JSONReader {
      * 
      * @return the value of the key as a int
      */
-    public int getInt(JSONObject json, String key) {
+    public static int getInt(JSONObject json, String key) {
         try {
             return (int)(long)json.get(key);
         } catch (Exception e) {
@@ -81,7 +80,7 @@ public class JSONReader {
      * 
      * @return the value of the key as a double
      */
-    public double getDouble(JSONObject json, String key) {
+    public static double getDouble(JSONObject json, String key) {
         try {
             return (double)json.get(key);
         } catch (Exception e) {
@@ -100,7 +99,7 @@ public class JSONReader {
      * 
      * @return the value of the key as a String
      */
-    public String getString(JSONObject json, String key) {
+    public static String getString(JSONObject json, String key) {
         try {
             return (String)json.get(key);
         } catch (Exception e) {
@@ -119,7 +118,7 @@ public class JSONReader {
      * 
      * @return the value of the key as an int array
      */
-    public int[] getIntArray(JSONObject json, String key) {
+    public static int[] getIntArray(JSONObject json, String key) {
         try {
             JSONArray a = (JSONArray)json.get(key);
             int[] b = new int[a.size()];
@@ -142,7 +141,7 @@ public class JSONReader {
      * 
      * @return the value of the key as a double array
      */
-    public double[] getDoubleArray(JSONObject json, String key) {
+    public static double[] getDoubleArray(JSONObject json, String key) {
         try {
             JSONArray a = (JSONArray)json.get(key);
             double[] b = new double[a.size()];

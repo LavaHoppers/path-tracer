@@ -1,4 +1,5 @@
 package net.lavahoppers;
+
 /*
  * OBJReader.java
  * 
@@ -36,9 +37,9 @@ public class OBJReader {
 
         try {
             scanner = new Scanner(new File(path));
-        } catch (FileNotFoundException e) {
-            System.out.println("File not found: " + path);
-            return null;
+        } catch (Exception e) {
+            System.err.printf("Could not open file \"%s\".", path);
+            System.exit(1);
         }
 
         while (scanner.hasNextLine()) {
@@ -58,7 +59,7 @@ public class OBJReader {
                         double z = Double.parseDouble(parsed[3]);
                         verticies.add(new Vector3(x, y, z));
                     } catch (Exception e) {
-                        System.out.println("Failed to load vertex information for: " + line);
+                        System.err.println("Failed to load vertex information for: " + line);
                         verticies.add(new Vector3());
                     }
                     break;
@@ -90,7 +91,6 @@ public class OBJReader {
         }
         scanner.close();
         
-        System.out.println("Creating Mesh");
         return new Mesh(verticies, triangles);
     }
 
