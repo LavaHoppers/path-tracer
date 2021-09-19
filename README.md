@@ -31,7 +31,7 @@ The first two numbers specify the resolution, and `-v` tells the path-tracer to 
 The full list of rendering setting are as follows:
 
 | flag | desc |
-|---|---|
+|------------|------------------------|
 | **-m int** | Enable multithreading and set pixel dimensions of the chunks |
 | **-a int** | Set the sub-pixel sampling (antialiasing) resolution. For example, Supplying an argument of `2` will sample the pixel `2*2=4` times in a grid-like fashion. |
 | **-o** | Enable `.png` file output on completion |

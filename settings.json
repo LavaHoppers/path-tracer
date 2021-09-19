@@ -1,24 +1,24 @@
 {
 
-    "render-resolution": [720, 480],
+    "resolution": [400, 300],
     "save-render-to-png": true,
     "png-output-location": "./img",
     "realtime-display": true,
 
-    "camera-position": [-4.0, 8.0, -12.0],
+    "camera-location": [-8.0, 8.0, -8.0],
     "camera-pitch": -0.3,
-    "camera-yaw": -1.3,
+    "camera-yaw": -0.85,
 
     "antialiasing": true,
-    "antialiasing-multiplier": 256,
+    "antialiasing-multiplier": 1,
 
     "multithreaded-render": true,
     "verbose-console": false,
 
     "global-illumination": false,
-    "global-illumination-bounces": 1,
+    "global-illumination-bounces": 2,
     "global-illumination-scatters": 3,
-    "inverse-square-law-constant": 1.0
+    "inverse-square-law-constant": 3.0
 
 
 }

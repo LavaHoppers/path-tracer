@@ -1,7 +1,14 @@
+/**
+ * PathTracer.java
+ * 
+ * Joshua Hopwood
+ * 09/19/2021
+ */
+
 package net.lavahoppers;
+
 import java.io.FileReader;
 import java.util.Random;
-
 
 import org.json.simple.*;
 import org.json.simple.parser.*;
@@ -17,13 +24,14 @@ import org.json.simple.parser.*;
  */
 public class PathTracer {
 
-	private static boolean isVerboseConsole = false;
-	private static boolean isSaveToFile = false;
-	private static boolean isMultithreadRender = false;
-	public static int multithreadDimension = 48;
-	public static int subPixelSamples = 1;
-
+	public static boolean isVerboseConsole = false;
+	public static boolean isSaveToFile = false;
+	public static boolean isMultithreadRender = false;
 	public static boolean isGlobalIllumination = false;
+
+	public static final int MULTITHREADED_DIMENSION = 48;
+
+	public static int subPixelSamples = 1;
 	public static int globalIllumBounces = 1;
 	public static int globalIllumScatters = 1;
 	public static double globalIllumScalar = 1;
@@ -83,10 +91,10 @@ public class PathTracer {
 			JSONObject json = (JSONObject)parser.parse(
 				new FileReader("settings.json"));
 
-			JSONArray resolution = (JSONArray)json.get("render-resolution");
+			JSONArray resolution = (JSONArray)json.get("resolution");
 			image = new FastBufferedImage((int)(long)resolution.get(0),
 				(int)(long)resolution.get(1));
-			image.fillGrayChecker(50, 0xAF, 0xC0);
+			image.fillGrayChecker(MULTITHREADED_DIMENSION, 0xAF, 0xC0);
 
 			isVerboseConsole = (boolean)json.get("verbose-console");
 		 	isSaveToFile = (boolean)json.get("save-render-to-png");
@@ -100,10 +108,12 @@ public class PathTracer {
 
 			outputFileLocation = (String)json.get("png-output-location");
 
-			JSONArray position = (JSONArray)json.get("camera-position");
-			cameraLocation = new Vector3((double)position.get(0), 
-				(double)position.get(1), 
-				(double)position.get(2));
+			JSONArray location = (JSONArray)json.get("camera-location");
+			cameraLocation = new Vector3(
+				(double)location.get(0), 
+				(double)location.get(1), 
+				(double)location.get(2)
+			);
 			cameraPhi = (double)json.get("camera-pitch");
 			cameraTheta = (double)json.get("camera-yaw");
 			cameraPhiMatrix = Matrix.getZRotationMatrix(cameraPhi);
@@ -178,7 +188,7 @@ public class PathTracer {
 				// global illumination
 				if (isGlobalIllumination)
 					pixelColor.setAdd(recursiveIllumination(0, surfaceLocation, 
-					surfaceNormal).scale(cosOfAngle));
+					surfaceNormal, cameraRay).scale(cosOfAngle));
 
 			} else {
 				pixelColor.setAdd(surfaceColor);
@@ -240,7 +250,7 @@ public class PathTracer {
 	 * @return
 	 */
 	public static Vector3 recursiveIllumination(int bounceNumber, 
-		Vector3 surfaceLocation, Vector3 surfaceNormal) {
+		Vector3 surfaceLocation, Vector3 surfaceNormal, Vector3 cameraRay) {
 
 		if (globalIllumBounces <= bounceNumber)
 			return new Vector3(0x00, 0x00, 0x00);
@@ -249,7 +259,21 @@ public class PathTracer {
 
 		for (int scatters = 0; scatters < globalIllumScatters; scatters++) {
 
-			Vector3 scatterRay = getDiffuseScatter(surfaceNormal);
+			double c = 10;
+			double b = .1;
+			double a = cameraRay.scale(-1).dot(surfaceNormal);
+			a = a < 0 ? -a : a;
+
+			double fresnel = 1.0 / (1.0 + b) * 
+				(Math.pow(2.0, a * -c) + b);
+
+			Vector3 scatterRay = null;
+			if (RANDOM.nextDouble() > fresnel)
+				scatterRay = getDiffuseScatter(surfaceNormal);
+			else
+				scatterRay = getSpecularScatter(.2, surfaceNormal, cameraRay);
+
+//			Vector3 scatterRay = getDiffuseScatter(surfaceNormal);
 			Vector3 hitPoint = new Vector3();
 			Vector3 hitSurfaceNormal = new Vector3();
 			Vector3 hitSurfaceRGB = new Vector3();
@@ -276,7 +300,7 @@ public class PathTracer {
 
  				totalLightContribution.setAdd(hitSurfaceIllumination
 				 		.add(recursiveIllumination(
-						bounceNumber++, hitPoint, hitSurfaceNormal))
+						bounceNumber++, hitPoint, hitSurfaceNormal, cameraRay))
 				 		.scale(lambert / (globalIllumScalar * distance * distance)));
 			}
 		}
@@ -293,22 +317,22 @@ public class PathTracer {
 	 */
 	public static RenderThread[] getRenderThreads() {
 
-		int neededThreads = (int)(Math.ceil((double)image.getWidth() / multithreadDimension) * 
-								  Math.ceil((double)image.getHeight() / multithreadDimension));
+		int neededThreads = (int)(Math.ceil((double)image.getWidth() / MULTITHREADED_DIMENSION) * 
+								  Math.ceil((double)image.getHeight() / MULTITHREADED_DIMENSION));
 
 		RenderThread[] threads = new RenderThread[neededThreads];
 		
 		int i = 0;
 
-		for (int y = 0; y < image.getHeight(); y += multithreadDimension) {
-			for (int x = 0; x < image.getWidth(); x += multithreadDimension) {
+		for (int y = 0; y < image.getHeight(); y += MULTITHREADED_DIMENSION) {
+			for (int x = 0; x < image.getWidth(); x += MULTITHREADED_DIMENSION) {
 
-				int width = image.getWidth() < x + multithreadDimension ? // too large?
+				int width = image.getWidth() < x + MULTITHREADED_DIMENSION ? // too large?
 							image.getWidth() - x : // okay, resize
-							multithreadDimension;
-				int height = image.getHeight() < y + multithreadDimension ? 
+							MULTITHREADED_DIMENSION;
+				int height = image.getHeight() < y + MULTITHREADED_DIMENSION ? 
 							 image.getHeight() - y : 
-							 multithreadDimension;
+							 MULTITHREADED_DIMENSION;
 
 				threads[i] = new RenderThread(x, y, width, height);
 				i++;
