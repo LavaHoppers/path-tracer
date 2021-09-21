@@ -4,23 +4,18 @@
     "camera-pitch": -0.3,
     "camera-yaw": -0.85,
 
-    "hdri-file-name": "img/hdri/kloppenheim.jpg",
+    "hdri-file-name": "img/hdri/hdri (1).jpg",
 
-    "resolution": [400, 300],
+    "resolution": [720, 480],
     "image-output-dir": "./img",
     "realtime-display": true,
 
-    
-
-    "samples-per-pixel": 100,
+    "rays-per-pixel": 10,
+    "ray-bounces": 100,
+    "initial-scatters": 10,
+    "recursive-scatters": 1,
 
     "multithreaded-render": true,
-    "verbose-console": false,
 
-    "global-illumination": true,
-    "global-illumination-bounces": 3,
-    "global-illumination-scatters": 1,
     "inverse-square-law-constant": 1.0
-
-
 }

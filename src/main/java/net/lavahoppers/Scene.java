@@ -111,10 +111,7 @@ public class Scene {
         }
 
         if (closeTri == null) {
-            if (rgbOut != null)
-                rgbOut.set(getDirectionalLight(ray));
             return false;
-            
         }
         if (ptOut != null)
             ptOut.set(origin.copy().setScaleAdd(ray, closeDist));
@@ -145,12 +142,15 @@ public class Scene {
         double y = HDRI.getHeight() * (vAngle / Math.PI);
 
         int color = HDRI.getRGB((int)x, (int)y);
+        //int mult = (color & 0xFFFFFF) == 0xFFFFFF ? 2 : 1;
 
         return new Vector3(
             (color >> 16) & 0xFF,  
             (color >> 8 ) & 0xFF,
             (color      ) & 0xFF 
+        //).scale(mult);
         );
+
     }
 
 }

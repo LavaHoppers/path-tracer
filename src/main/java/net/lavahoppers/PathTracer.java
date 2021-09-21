@@ -21,15 +21,14 @@ import org.json.simple.JSONObject;
  */
 public class PathTracer {
 
-	public static boolean isVerboseConsole = false;
 	public static boolean isMultithreadRender = false;
-	public static boolean isGlobalIllumination = false;
 
-	public static final int MULTITHREADED_DIMENSION = 48;
+	public static final int BUCKET_SIZE = 48;
 
-	public static int subPixelSamples = 1;
-	public static int globalIllumBounces = 1;
-	public static int globalIllumScatters = 1;
+	public static int raysPerPixel = 1;
+	public static int rayBounces = 1;
+	public static int recursiveScatters = 1;
+	public static int initialScatters = 1;
 	public static double globalIllumScalar = 1;
 
 	public static String outputFileLocation = "./";
@@ -45,6 +44,8 @@ public class PathTracer {
 	public static double cameraPhi = 0;
 	public static Matrix cameraPhiMatrix = null;
 	public static Matrix cameraThetaMatrix = null;
+
+	public static int pixelsRendered = 0;
 			
 	
 	/**
@@ -70,7 +71,6 @@ public class PathTracer {
 		if (cameraTheta != 0)
 			ray.setMatrixRotation(cameraThetaMatrix);
 		
-
 		return ray.norm();
 	}
 
@@ -87,14 +87,13 @@ public class PathTracer {
 		int[] res = JSONReader.getIntArray(root, "resolution");
 		image = new FastBufferedImage(res[0], res[1]);
 
-		image.fillGrayChecker(MULTITHREADED_DIMENSION, 0xAF, 0xC0);
+		image.fillGrayChecker(BUCKET_SIZE, 0xAF, 0xC0);
 
-		isVerboseConsole = JSONReader.getBoolean(root, "verbose-console");
 		isMultithreadRender = JSONReader.getBoolean(
 			root, "multithreaded-render"
 		);
 		
-		subPixelSamples = JSONReader.getInt(root, "samples-per-pixel");
+		raysPerPixel = JSONReader.getInt(root, "rays-per-pixel");
 
 		display = JSONReader.getBoolean(root, "realtime-display") ?
 			new Display("Path Tracer", image) :
@@ -110,14 +109,14 @@ public class PathTracer {
 		cameraPhiMatrix = Matrix.getZRotationMatrix(cameraPhi);
 		cameraThetaMatrix = Matrix.getYRotationMatrix(cameraTheta);
 
-		isGlobalIllumination = JSONReader.getBoolean(
-			root, "global-illumination"
+		rayBounces = JSONReader.getInt(
+			root, "ray-bounces"
 		);
-		globalIllumBounces = JSONReader.getInt(
-			root, "global-illumination-bounces"
+		initialScatters = JSONReader.getInt(
+			root, "initial-scatters"
 		);
-		globalIllumScatters = JSONReader.getInt(
-			root, "global-illumination-scatters"
+		recursiveScatters = JSONReader.getInt(
+			root, "recursive-scatters"
 		);
 		globalIllumScalar = JSONReader.getDouble(
 			root, "inverse-square-law-constant"
@@ -136,65 +135,56 @@ public class PathTracer {
      */
     public static void renderPixel(int x, int y) {
 
-        Vector3 pixelColor = new Vector3();
+		Vector3 pixelColor = new Vector3();
+
+		Vector3 surfaceLocation = new Vector3();
+		Vector3 surfaceNormal = new Vector3();
+		Vector3 surfaceColor = new Vector3();
+
+		Vector3 cameraRay = null;
 		
-        for (int sample = 0; sample < subPixelSamples; sample++) {
+		for (int i = 0; i < raysPerPixel; i++) {
 
-			Vector3 cameraRay = getCameraRay(x, y);
-			Vector3 surfaceLocation = new Vector3();
-			Vector3 surfaceNormal = new Vector3();
-			Vector3 surfaceColor = new Vector3();
+			cameraRay = getCameraRay(x, y);
 
-			if (scene.intersect(cameraLocation, cameraRay, surfaceLocation, 
-					surfaceNormal, surfaceColor)) {
+			boolean isRayIntersect = scene.intersect(
+				cameraLocation, 
+				cameraRay, 
+				surfaceLocation,
+				surfaceNormal, 
+				surfaceColor
+			);
 
-				double c = 10;
-				double b = .1;
-				double a = cameraRay.scale(-1).dot(surfaceNormal);
-				a = a < 0 ? -a : a;
-
-				double fresnel = 1.0 / (1.0 + b) * 
-					(Math.pow(2.0, a * -c) + b);
-
-				Vector3 scatterRay = null;
-				if (RANDOM.nextDouble() > fresnel)
-					scatterRay = getDiffuseScatter(surfaceNormal);
-				else
-					scatterRay = getSpecularScatter(.2, surfaceNormal, cameraRay);
-
-				double cosOfAngle = surfaceNormal.dot(scatterRay);
-				cosOfAngle = cosOfAngle < 0 ? -cosOfAngle : cosOfAngle;
-
-
-				// direct illumination
-				if (!scene.intersect(surfaceLocation, scatterRay, 
-					null, null, null)) {
-
-					double multiplier = 1;
-
-					Vector3 light = Scene.getDirectionalLight(scatterRay);
-					if (light.getX() == 255 && light.getY() == 255 && light.getZ() == 255) {
-						multiplier = 8;
-					}
-
-					pixelColor.setAdd(
-						light.scale(cosOfAngle * multiplier));
-				}
-
-				// global illumination
-				if (isGlobalIllumination)
-					pixelColor.setAdd(recursiveIllumination(0, surfaceLocation, 
-					surfaceNormal, cameraRay).scale(cosOfAngle));
-
+			if (isRayIntersect) {
+				pixelColor.setAdd(renderingEquation(
+					cameraLocation, 
+					cameraRay, 
+					surfaceLocation,
+					surfaceNormal, 
+					surfaceColor,
+					initialScatters,
+					0
+				));
 			} else {
-				pixelColor.setAdd(surfaceColor);
+				pixelColor.setAdd(Scene.getDirectionalLight(cameraRay));
 			}
-				
 
-				
 		}
 
-        pixelColor.setScale(1.0 / (subPixelSamples));
+		
+/*
+        Vector3 pixelColor = new Vector3();
+		
+        for (int i = 0; i < raysPerPixel; i++)
+			pixelColor.setAdd(getLightFromDirection(
+					initialScatters,
+					0, 
+					cameraLocation, 
+					getCameraRay(x, y)
+			));
+*/
+        pixelColor.setScale(1.0 / raysPerPixel);
+
         image.setPixel(x, y, 
 			(int)(pixelColor.getX() > 255 ? 255 : pixelColor.getX()), 
 			(int)(pixelColor.getY() > 255 ? 255 : pixelColor.getY()), 
@@ -202,7 +192,155 @@ public class PathTracer {
 
 		if (display != null)
 			display.repaint();
+		
+		pixelsRendered++;
     }
+
+	/**
+	 * 
+	 * @param observer
+	 * @param omega0
+	 * @param x
+	 * @param n
+	 * @param gamma
+	 * @param scatters
+	 * @param bounce
+	 * @return
+	 */
+	private static Vector3 renderingEquation(
+		Vector3 observer, Vector3 omega0, Vector3 x, Vector3 n, Vector3 gamma, 
+		int scatters, int bounce
+	) {
+
+		if (rayBounces < bounce)
+			return new Vector3();
+
+		Vector3 colorOut = new Vector3();
+
+		Vector3 surfaceLocation = new Vector3();
+		Vector3 surfaceNormal = new Vector3();
+		Vector3 surfaceColor = new Vector3();
+
+		for (int i = 0; i < scatters; i++) {
+
+			double rand = RANDOM.nextDouble();
+			Vector3 scatterRay = 
+				fresnelEffect(omega0, n) < rand ?
+				scatterRay = getDiffuseScatter(n) :
+				getSpecularScatter(.2, n, omega0);
+
+			boolean isRayIntersect = scene.intersect(
+				x, 
+				scatterRay, 
+				surfaceLocation,
+				surfaceNormal, 
+				surfaceColor
+			);
+
+			if (isRayIntersect) {
+
+				double cosOfAngle = n.dot(scatterRay);
+				cosOfAngle = cosOfAngle < 0 ? -cosOfAngle : cosOfAngle;
+
+				colorOut.setAdd(renderingEquation(
+					x, 
+					scatterRay, 
+					surfaceLocation,
+					surfaceNormal, 
+					surfaceColor,
+					recursiveScatters,
+					bounce++
+				).scale(cosOfAngle));
+
+			} else {
+				colorOut.setAdd(Scene.getDirectionalLight(scatterRay));
+			}
+
+		}
+
+		colorOut.setScale(1.0 / scatters);
+
+		return colorOut;
+	}
+
+	/**
+	 * Get the illumination of a location in a direction
+	 * @param scatters
+	 * @param point
+	 * @param ray
+	 */
+/*
+	private static Vector3 getLightFromDirection(
+		int scatters, int bounce, Vector3 point, Vector3 ray
+	) {
+
+		if (rayBounces < bounce)
+			return new Vector3();
+
+		Vector3 totalLight = new Vector3();
+
+		Vector3 surfaceLocation = new Vector3();
+		Vector3 surfaceNormal = new Vector3();
+		Vector3 surfaceColor = new Vector3();
+
+		boolean isRayIntersection = scene.intersect(
+			point, 
+			ray, 
+			surfaceLocation,
+			surfaceNormal, 
+			surfaceColor
+		);
+
+		if (isRayIntersection) {
+
+			for (int i = 0; i < scatters; i++) {
+
+//				double rand = RANDOM.nextDouble();
+//				Vector3 scatterRay = 
+//					fresnelEffect(ray, surfaceNormal) < rand ?
+//					scatterRay = getDiffuseScatter(surfaceNormal) :
+//					getSpecularScatter(.2, surfaceNormal, ray);
+
+				Vector3 scatterRay = getDiffuseScatter(surfaceNormal);
+
+				double cosOfAngle = surfaceNormal.dot(scatterRay);
+				cosOfAngle = cosOfAngle < 0 ? -cosOfAngle : cosOfAngle;
+
+				totalLight.setAdd(getLightFromDirection(
+					recursiveScatters, bounce++, surfaceLocation, scatterRay
+				).scale(cosOfAngle));
+				
+			}
+
+			double distance = bounce < 1 ? 
+				1 : point.sub(surfaceLocation).mag() + 1;
+
+			totalLight.setScale(1.0 / (scatters * distance * distance));
+
+		} else {
+			return Scene.getDirectionalLight(ray);
+		}
+
+		return totalLight;
+
+	}
+*/
+
+	/**
+	 * Calculate the likelyhood of a specular scatter based on the angle
+	 * between the observing ray and the surface normal.
+	 * @param observerRay the ray observing the surface
+	 * @param surfaceNormal the normal to the surface
+	 * @return the likelyhood of a specular scatter between 0 and 1.
+	 */
+	public static double fresnelEffect(Vector3 observerRay, Vector3 surfaceNormal) {
+		double c = 10;
+		double b = .01;
+		double cosOfAngle = observerRay.scale(-1).dot(surfaceNormal);
+		cosOfAngle = cosOfAngle < 0 ? -cosOfAngle : cosOfAngle;
+
+		return 1.0 / (1.0 + b) * (Math.pow(2.0, cosOfAngle * -c) + b);
+	}
 
 	/**
 	 * Gives a random sunlight ray
@@ -237,6 +375,7 @@ public class PathTracer {
 		return Vector3.rotate(ray, surfaceNormal, Math.PI).scale(-1).add(scatterRay.scale(spread)).norm();
 	}
 
+
 	/**
 	 * returns the light intensity of a certain ray based on its surroundings
 	 * 
@@ -244,16 +383,16 @@ public class PathTracer {
 	 * @param surfaceLocation the point looking to be illuminated
 	 * @param surfaceNormal the normal to the point
 	 * @return
-	 */
+/*
 	public static Vector3 recursiveIllumination(int bounceNumber, 
 		Vector3 surfaceLocation, Vector3 surfaceNormal, Vector3 cameraRay) {
 
-		if (globalIllumBounces <= bounceNumber)
+		if (rayBounces <= bounceNumber)
 			return new Vector3(0x00, 0x00, 0x00);
 
 		Vector3 totalLightContribution = new Vector3();
 
-		for (int scatters = 0; scatters < globalIllumScatters; scatters++) {
+		for (int scatters = 0; scatters < recursiveScatters; scatters++) {
 
 			double c = 10;
 			double b = .1;
@@ -305,6 +444,7 @@ public class PathTracer {
 		return totalLightContribution;
 
 	}
+*/
 
 	/**
 	 * Create all the render threads to run
@@ -313,22 +453,22 @@ public class PathTracer {
 	 */
 	public static RenderThread[] getRenderThreads() {
 
-		int neededThreads = (int)(Math.ceil((double)image.getWidth() / MULTITHREADED_DIMENSION) * 
-								  Math.ceil((double)image.getHeight() / MULTITHREADED_DIMENSION));
+		int neededThreads = (int)(Math.ceil((double)image.getWidth() / BUCKET_SIZE) * 
+								  Math.ceil((double)image.getHeight() / BUCKET_SIZE));
 
 		RenderThread[] threads = new RenderThread[neededThreads];
 		
 		int i = 0;
 
-		for (int y = 0; y < image.getHeight(); y += MULTITHREADED_DIMENSION) {
-			for (int x = 0; x < image.getWidth(); x += MULTITHREADED_DIMENSION) {
+		for (int y = 0; y < image.getHeight(); y += BUCKET_SIZE) {
+			for (int x = 0; x < image.getWidth(); x += BUCKET_SIZE) {
 
-				int width = image.getWidth() < x + MULTITHREADED_DIMENSION ? // too large?
+				int width = image.getWidth() < x + BUCKET_SIZE ? // too large?
 							image.getWidth() - x : // okay, resize
-							MULTITHREADED_DIMENSION;
-				int height = image.getHeight() < y + MULTITHREADED_DIMENSION ? 
+							BUCKET_SIZE;
+				int height = image.getHeight() < y + BUCKET_SIZE ? 
 							 image.getHeight() - y : 
-							 MULTITHREADED_DIMENSION;
+							 BUCKET_SIZE;
 
 				threads[i] = new RenderThread(x, y, width, height);
 				i++;
@@ -336,15 +476,6 @@ public class PathTracer {
 		}
 
 		return threads;
-	}
-
-	/**
-	 * Print this string if the verbose flag is true
-	 * 
-	 * @param text the text to be printed
-	 */
-	public static void vPrint(String text) {
-		if (isVerboseConsole) System.out.println(text);
 	}
 
 	/**
@@ -377,36 +508,68 @@ public class PathTracer {
 
 		if (isMultithreadRender) {
 			RenderThread[] threads = getRenderThreads();
-			for (int i = 0; i < threads.length;) 
+			for (int i = 0; i < threads.length;)  {
+				printProgressBar();				
 				if (RenderThread.running() < Runtime.getRuntime().availableProcessors()) 
 					threads[i++].start();
+			}
 		} else {
 			new RenderThread(0, 0, image.getWidth(), image.getHeight()).start();
 		}	
 
-		while(0 < RenderThread.running()) { sleep(); }
+		while(0 < RenderThread.running()) { 
+			sleep(); 
+			printProgressBar();
+		}
+
+		System.out.println(
+			"Done!                                                             "
+			 + "   "
+		);
 
 		String fileName = "" + System.currentTimeMillis();
 		image.savePNG(outputFileLocation, fileName);
 
 		long deltaTime = System.currentTimeMillis() - startTime;
 
-		System.out.printf(
-			"Render finished in %dh:%dm:%ds:%dms.\n",
-			deltaTime / 1000L / 60L / 60L,
-			(deltaTime / 1000L / 60L) % 60L,
-			(deltaTime / 1000L) % 60L,
-			deltaTime  % 1000L
-		);
+		System.out.printf("Render finished in %s.\n", milliToTime(deltaTime));
 
 		System.out.printf(
-			"The average milliseconds per sample was %f.\n",
-			(double)(subPixelSamples * globalIllumBounces * globalIllumScatters)
-			/ (double)deltaTime	
+			"The average milliseconds per pixel was %f.\n",
+			(double)deltaTime / (double)(pixelsRendered)
 		);
 
 		System.out.println("Saved completed render as \"" + fileName + 
 			".png\" in \"" + outputFileLocation + "\"." );
+
+	}
+
+	/**
+	 * Get the time in hours, minutes, and seconds for a quantity of 
+	 * milliseconds
+	 * @param milli the milliseconds
+	 * @return the milliseconds formatted as a string
+	 */
+	public static String milliToTime(long milli) {
+		return String.format("%dh:%dm:%ds:%dms", 
+		milli / 1000L / 60L / 60L, (milli / 1000L / 60L) % 60L,
+		(milli / 1000L) % 60L, milli  % 1000L);
+	}
+
+	/**
+	 * Prints out a progress bar for the render
+	 */
+	public static void printProgressBar() {
+		double progress = 
+			pixelsRendered / (double)(image.getWidth() * image.getHeight());
+		String bar = "";
+		for (double i = 0; i < 1; i+=.02) {
+			if (i < progress)
+				bar = bar + "#";
+			else 
+				bar = bar + " ";
+		}
+		System.out.printf("Progress: %5.1f%% |%s|\r", progress * 100, bar);
 	}
 
 }
